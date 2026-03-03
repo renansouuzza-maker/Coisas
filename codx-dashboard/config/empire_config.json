@@ -1,0 +1,41 @@
+{
+  "_comment": "Configuração do CodX Dashboard. Edite conforme sua instalação.",
+
+  "empire_root": "~/CodX/ESCRITORIOS",
+  "ipc_dir": "~/.codx/ipc",
+  "log_dir": "~/.codx/logs",
+
+  "refresh_interval_ms": 2000,
+  "animation_fps": 30,
+
+  "window": {
+    "width": 1100,
+    "height": 720,
+    "always_on_top": true,
+    "start_minimized": false
+  },
+
+  "escritorios": [
+    { "folder": "OBLIV",           "agent_id": "obliv-brand",       "tier": "core" },
+    { "folder": "NEXUS",           "agent_id": "nexus-rh",          "tier": "corporate" },
+    { "folder": "NXS",             "agent_id": "nxs-rh",            "tier": "corporate" },
+    { "folder": "ENGEX",           "agent_id": "engex-construcao",  "tier": "corporate" },
+    { "folder": "ESPACO_SINGULAR", "agent_id": "espaco-singular",   "tier": "corporate" },
+    { "folder": "HUMAN_ARCH",      "agent_id": "human-arch",        "tier": "premium" },
+    { "folder": "AVIA",            "agent_id": "avia-saude",        "tier": "premium" },
+    { "folder": "ADV_PROJECT",     "agent_id": "adv-lab",           "tier": "labs" },
+    { "folder": "BLENX",           "agent_id": "blenx",             "tier": "premium" },
+    { "folder": "VERACCI",         "agent_id": "veracci-luxo",      "tier": "premium" },
+    { "folder": "SHALON",          "agent_id": "shalon-varejo",     "tier": "volume" },
+    { "folder": "MAKER",           "agent_id": "maker-digital",     "tier": "core" }
+  ],
+
+  "tier_colors": {
+    "core":      "#FF3B30",
+    "premium":   "#9B59B6",
+    "corporate": "#3498DB",
+    "volume":    "#2ECC71",
+    "labs":      "#F1C40F",
+    "neutral":   "#5A5A72"
+  }
+}

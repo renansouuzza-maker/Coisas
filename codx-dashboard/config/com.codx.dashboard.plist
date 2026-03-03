@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchAgent para auto-start do CodX Dashboard.
+  Instalação: copie para ~/Library/LaunchAgents/ e rode:
+    launchctl load ~/Library/LaunchAgents/com.codx.dashboard.plist
+
+  O script install.sh faz tudo isso automaticamente.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.codx.dashboard</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/USUARIO/Applications/CodX Dashboard.app/Contents/MacOS/codx-dashboard</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/USUARIO/.codx/logs/dashboard.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/USUARIO/.codx/logs/dashboard-error.log</string>
+</dict>
+</plist>
