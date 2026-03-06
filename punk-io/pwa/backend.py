@@ -373,6 +373,27 @@ class Handler(SimpleHTTPRequestHandler):
             save_profiles(profiles)
             self._json({"success": True, "removed": username})
 
+        elif p.path == "/api/chat":
+            message = body.get("message", "")
+            history = body.get("history", [])
+            context = body.get("context", {})
+
+            # Build conversation for Gemini
+            history_text = "\n".join([f"{'Usuario' if h.get('role') == 'user' else 'Assistente'}: {h.get('text', '')}" for h in history[-6:]])
+            prompt = f"""Voce e o assistente de IA do Punk.io, um app de conteudo viral focado em beleza, maquiagem, cabelo, skincare, maternidade e LGBTQ+ no Brasil.
+
+Contexto atual: {json.dumps(context, ensure_ascii=False)}
+
+Historico recente:
+{history_text}
+
+Usuario: {message}
+
+Responda de forma util, concisa e pratica. Foque em dicas acionaveis sobre criacao de conteudo viral. Use portugues brasileiro informal. Nao use emojis. Limite a resposta a 200 palavras."""
+
+            response = gemini(prompt, 1024)
+            self._json({"response": response or "Desculpa, nao consegui processar. Tente novamente."})
+
         elif p.path == "/api/content/analyze":
             title = body.get("title", "")
             platform = body.get("platform", "instagram")
