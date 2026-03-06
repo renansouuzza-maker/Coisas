@@ -15,7 +15,9 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/USUARIO/Applications/CodX Dashboard.app/Contents/MacOS/codx-dashboard</string>
+        <!-- O install.sh substitui este caminho automaticamente.
+             Para instalação manual, ajuste para o caminho correto do .app -->
+        <string>/Users/SEU_USUARIO/Applications/CodX Dashboard.app/Contents/MacOS/codx-dashboard</string>
     </array>
 
     <key>RunAtLoad</key>
@@ -28,9 +30,9 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/Users/USUARIO/.codx/logs/dashboard.log</string>
+    <string>/Users/SEU_USUARIO/.codx/logs/dashboard.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/USUARIO/.codx/logs/dashboard-error.log</string>
+    <string>/Users/SEU_USUARIO/.codx/logs/dashboard-error.log</string>
 </dict>
 </plist>

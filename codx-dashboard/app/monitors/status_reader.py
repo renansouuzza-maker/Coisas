@@ -15,11 +15,18 @@ from datetime import datetime
 from data.state import AppState
 
 
-# Log do Claude Desktop (macOS)
+# Log do Claude Desktop e Claude Code (macOS)
 CLAUDE_LOG_PATHS = [
+    # Claude Code (CLI / desktop sessions)
+    os.path.expanduser("~/.claude/logs/claude.log"),
+    os.path.expanduser("~/.claude/logs/main.log"),
+    os.path.expanduser("~/.claude.log"),
+    # Claude Desktop (app Electron)
     os.path.expanduser("~/Library/Logs/Claude/claude.log"),
     os.path.expanduser("~/Library/Application Support/Claude/logs/main.log"),
     os.path.expanduser("~/Library/Logs/Claude/main.log"),
+    # Claude Code — diretório de projetos (logs locais)
+    os.path.expanduser("~/.claude/projects/*/logs/*.log"),
 ]
 
 # Arquivo de IPC que os agentes escrevem (opcional)
@@ -57,32 +64,49 @@ class StatusReader(threading.Thread):
             time.sleep(2)
 
     def _setup_log(self):
-        for path in CLAUDE_LOG_PATHS:
-            if Path(path).exists():
-                try:
-                    self._log_fd   = open(path, "r", encoding="utf-8", errors="replace")
-                    self._log_path = path
-                    self._log_fd.seek(0, 2)  # vai pro final
-                    return
-                except Exception:
-                    pass
+        import glob as globmod
+        for pattern in CLAUDE_LOG_PATHS:
+            # Suporta glob patterns (ex: ~/.claude/projects/*/logs/*.log)
+            matched = globmod.glob(pattern) if "*" in pattern else [pattern]
+            for path in sorted(matched, key=lambda p: Path(p).stat().st_mtime if Path(p).exists() else 0, reverse=True):
+                if Path(path).exists():
+                    try:
+                        self._log_fd   = open(path, "r", encoding="utf-8", errors="replace")
+                        self._log_path = path
+                        self._log_fd.seek(0, 2)  # vai pro final
+                        self.state.push_event("StatusReader", f"Monitorando log: {path}", "info")
+                        return
+                    except Exception:
+                        pass
         # Sem log real → modo simulação
         self._sim_mode = True
-        self.state.push_event("StatusReader", "Claude Desktop log não encontrado — modo demo ativo", "warn")
+        self.state.push_event("StatusReader", "Claude log não encontrado — modo demo ativo", "warn")
 
     def _check_claude_running(self):
-        """Verifica se o processo Claude Desktop está ativo."""
+        """Verifica se o processo Claude (Desktop ou Code) está ativo."""
         try:
+            # Tenta detectar Claude Desktop ou Claude Code
+            for proc_name in ["Claude", "claude"]:
+                result = subprocess.run(
+                    ["pgrep", "-xi", proc_name],
+                    capture_output=True, text=True, timeout=2
+                )
+                if result.returncode == 0:
+                    self.state.push_event(
+                        "system", f"Claude ({proc_name}): sessão ativa", "info"
+                    )
+                    return
+
+            # Fallback: verifica se há processo node rodando claude
             result = subprocess.run(
-                ["pgrep", "-x", "Claude"],
+                ["pgrep", "-f", "claude"],
                 capture_output=True, text=True, timeout=2
             )
-            running = result.returncode == 0
-            self.state.push_event(
-                "system",
-                "Claude Desktop: ativo" if running else "Claude Desktop: não encontrado",
-                "info" if running else "warn"
-            )
+            if result.returncode == 0:
+                self.state.push_event("system", "Claude Code: sessão ativa", "info")
+                return
+
+            self.state.push_event("system", "Claude: nenhuma sessão ativa", "warn")
         except Exception:
             pass
 
