@@ -273,24 +273,24 @@ function N(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K'
 function I(p){return{tiktok:'🎵',instagram:'📸'}[p]||'🌐'}
 function gen(){
 const C=[
-{u:'@virginia',n:'Virginia Fonseca',a:'https://i.pravatar.cc/150?u=virginia1',p:'instagram',f:50000000,e:4.8,v:true,ni:'Maternidade'},
-{u:'@marimaria',n:'Mari Maria',a:'https://i.pravatar.cc/150?u=marimaria2',p:'instagram',f:20000000,e:6.2,v:true,ni:'Maquiagem'},
-{u:'@biaborges',n:'Bianca Andrade',a:'https://i.pravatar.cc/150?u=bocaa3',p:'instagram',f:18000000,e:7.1,v:true,ni:'Beleza'},
-{u:'@francinyehlke',n:'Franciny Ehlke',a:'https://i.pravatar.cc/150?u=fran4',p:'instagram',f:6200000,e:5.9,v:true,ni:'Maquiagem'},
-{u:'@brunatavaresbt',n:'Bruna Tavares',a:'https://i.pravatar.cc/150?u=bruna5',p:'instagram',f:4500000,e:8.3,v:true,ni:'Maquiagem'},
+{u:'@virginia',n:'Virginia Fonseca',a:'https://i.pravatar.cc/150?u=virginia1',p:'instagram',f:51600000,e:4.8,v:true,ni:'Maternidade'},
+{u:'@marimariamakeup',n:'Mari Maria',a:'https://i.pravatar.cc/150?u=marimaria2',p:'instagram',f:21200000,e:6.2,v:true,ni:'Maquiagem'},
+{u:'@bianca',n:'Bianca Andrade',a:'https://i.pravatar.cc/150?u=bocaa3',p:'instagram',f:19000000,e:7.1,v:true,ni:'Beleza'},
+{u:'@francinyehlke',n:'Franciny Ehlke',a:'https://i.pravatar.cc/150?u=fran4',p:'instagram',f:19000000,e:5.9,v:true,ni:'Maquiagem'},
+{u:'@brunatavares',n:'Bruna Tavares',a:'https://i.pravatar.cc/150?u=bruna5',p:'instagram',f:4000000,e:8.3,v:true,ni:'Maquiagem'},
 {u:'@rayzanicacio',n:'Rayza Nicacio',a:'https://i.pravatar.cc/150?u=rayza6',p:'instagram',f:1500000,e:9.7,v:true,ni:'Cabelo'},
 {u:'@paborges',n:'Pabllo Vittar',a:'https://i.pravatar.cc/150?u=pabllo7',p:'instagram',f:15000000,e:11.2,v:true,ni:'LGBTQ+ Beauty'},
 {u:'@gloriagroove',n:'Gloria Groove',a:'https://i.pravatar.cc/150?u=gloria8',p:'tiktok',f:12000000,e:13.8,v:true,ni:'LGBTQ+ Beauty'},
 {u:'@jadepicon',n:'Jade Picon',a:'https://i.pravatar.cc/150?u=jade9',p:'instagram',f:22000000,e:5.4,v:true,ni:'Skincare'},
-{u:'@samarafelippo',n:'Samara Felippo',a:'https://i.pravatar.cc/150?u=samara10',p:'instagram',f:2300000,e:10.1,v:true,ni:'Maternidade'},
-{u:'@letticiamunniz',n:'Letticia Munniz',a:'https://i.pravatar.cc/150?u=letticia13',p:'tiktok',f:9200000,e:12.7,v:true,ni:'Cabelo'},
-{u:'@ricademarresm',n:'Rica de Marre',a:'https://i.pravatar.cc/150?u=rica12',p:'tiktok',f:5800000,e:16.3,v:true,ni:'LGBTQ+ Maquiagem'},
+{u:'@tata',n:'Tata Estaniecki',a:'https://i.pravatar.cc/150?u=tata13',p:'instagram',f:12000000,e:7.5,v:true,ni:'Maternidade'},
+{u:'@viihtube',n:'Viih Tube',a:'https://i.pravatar.cc/150?u=viih16',p:'instagram',f:33000000,e:4.9,v:true,ni:'Maternidade'},
 {u:'@juliette',n:'Juliette Freire',a:'https://i.pravatar.cc/150?u=juliette15',p:'instagram',f:29000000,e:5.6,v:true,ni:'Maquiagem'},
-{u:'@viihtube',n:'Viih Tube',a:'https://i.pravatar.cc/150?u=viih16',p:'instagram',f:33100000,e:4.9,v:true,ni:'Maternidade'},
-{u:'@niinasecrets',n:'Niina Secrets',a:'https://i.pravatar.cc/150?u=niina17',p:'instagram',f:5500000,e:6.8,v:true,ni:'Maquiagem'},
-{u:'@diegogloow',n:'Diego Glow',a:'https://i.pravatar.cc/150?u=diego18',p:'tiktok',f:5800000,e:15.2,v:true,ni:'LGBTQ+ Maquiagem'},
-{u:'@taisaraujo',n:'Tais Araujo',a:'https://i.pravatar.cc/150?u=tais14',p:'instagram',f:14000000,e:4.2,v:true,ni:'Beleza & Maternidade'},
-{u:'@tfrancaah',n:'Tata Estaniecki',a:'https://i.pravatar.cc/150?u=tata13',p:'instagram',f:9800000,e:7.5,v:true,ni:'Maternidade'}
+{u:'@niinasecrets',n:'Niina Secrets',a:'https://i.pravatar.cc/150?u=niina17',p:'instagram',f:4000000,e:6.8,v:true,ni:'Maquiagem'},
+{u:'@diucke',n:'Diucke',a:'https://i.pravatar.cc/150?u=diucke14',p:'tiktok',f:1100000,e:18.5,v:true,ni:'LGBTQ+ Maquiagem'},
+{u:'@jardeledebran',n:'Jardel Edebran',a:'https://i.pravatar.cc/150?u=jardel15',p:'tiktok',f:866000,e:14.2,v:true,ni:'Skincare'},
+{u:'@naiumigoldoni',n:'Naiumi Goldoni',a:'https://i.pravatar.cc/150?u=naiumi16',p:'tiktok',f:2900000,e:12.1,v:true,ni:'Maternidade'},
+{u:'@karenbachini',n:'Karen Bachini',a:'https://i.pravatar.cc/150?u=karen17',p:'tiktok',f:1600000,e:10.5,v:true,ni:'Maquiagem'},
+{u:'@linndaquebrada',n:'Linn da Quebrada',a:'https://i.pravatar.cc/150?u=linn18',p:'instagram',f:2000000,e:9.8,v:true,ni:'LGBTQ+ Beauty'}
 ];
 const IT=[
 {t:'Essa base de R$30 é MELHOR que a de R$300',s:'Maquiadora compara base drugstore com high-end em teste de 12h. Resultado surpreende.',id2:'Split-face: metade do rosto com cada. Timer 12h, check a cada 3h. Revelar resultado com close-up.',tr:'Gente, eu sei que vocês não vão acreditar. Essa base custa 30 reais. Essa outra, 300. Vou usar uma em cada lado do rosto e vamos ver em 12 horas qual sobrevive...',p:'tiktok',tp:'Video',ht:'Choque',tg:['maquiagem','base','drugstore','comparativo']},
