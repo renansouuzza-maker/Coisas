@@ -5,12 +5,12 @@
 # COMO USAR:
 # 1. Abra o Terminal no Mac
 # 2. Cole: bash <(curl -sL URL) OU copie/cole este script todo
-# 3. Depois rode: cd "/Users/reenzi/Documents/02. APPS/04. punk-io" && python3 server.py
+# 3. Depois rode: cd "/Users/reenzi/Documents/02. APPS/04. punk-io/pwa" && python3 backend.py
 # ══════════════════════════════════════════════════
 
 set -e
 
-DIR="/Users/reenzi/Documents/02. APPS/04. punk-io"
+DIR="/Users/reenzi/Documents/02. APPS/04. punk-io/pwa"
 mkdir -p "$DIR"
 cd "$DIR"
 
@@ -274,19 +274,23 @@ function I(p){return{tiktok:'🎵',instagram:'📸'}[p]||'🌐'}
 function gen(){
 const C=[
 {u:'@virginia',n:'Virginia Fonseca',a:'https://i.pravatar.cc/150?u=virginia1',p:'instagram',f:50000000,e:4.8,v:true,ni:'Maternidade'},
-{u:'@maaborges',n:'Mari Maria',a:'https://i.pravatar.cc/150?u=marimaria2',p:'instagram',f:20000000,e:6.2,v:true,ni:'Maquiagem'},
+{u:'@marimaria',n:'Mari Maria',a:'https://i.pravatar.cc/150?u=marimaria2',p:'instagram',f:20000000,e:6.2,v:true,ni:'Maquiagem'},
 {u:'@biaborges',n:'Bianca Andrade',a:'https://i.pravatar.cc/150?u=bocaa3',p:'instagram',f:18000000,e:7.1,v:true,ni:'Beleza'},
 {u:'@francinyehlke',n:'Franciny Ehlke',a:'https://i.pravatar.cc/150?u=fran4',p:'instagram',f:6200000,e:5.9,v:true,ni:'Maquiagem'},
-{u:'@brufraga',n:'Bruna Tavares',a:'https://i.pravatar.cc/150?u=bruna5',p:'instagram',f:4500000,e:8.3,v:true,ni:'Maquiagem'},
-{u:'@rayzanicacio',n:'Rayza Nicácio',a:'https://i.pravatar.cc/150?u=rayza6',p:'instagram',f:1500000,e:9.7,v:true,ni:'Cabelo'},
+{u:'@brunatavaresbt',n:'Bruna Tavares',a:'https://i.pravatar.cc/150?u=bruna5',p:'instagram',f:4500000,e:8.3,v:true,ni:'Maquiagem'},
+{u:'@rayzanicacio',n:'Rayza Nicacio',a:'https://i.pravatar.cc/150?u=rayza6',p:'instagram',f:1500000,e:9.7,v:true,ni:'Cabelo'},
 {u:'@paborges',n:'Pabllo Vittar',a:'https://i.pravatar.cc/150?u=pabllo7',p:'instagram',f:15000000,e:11.2,v:true,ni:'LGBTQ+ Beauty'},
 {u:'@gloriagroove',n:'Gloria Groove',a:'https://i.pravatar.cc/150?u=gloria8',p:'tiktok',f:12000000,e:13.8,v:true,ni:'LGBTQ+ Beauty'},
-{u:'@jaborges',n:'Jade Picon',a:'https://i.pravatar.cc/150?u=jade9',p:'instagram',f:22000000,e:5.4,v:true,ni:'Skincare'},
+{u:'@jadepicon',n:'Jade Picon',a:'https://i.pravatar.cc/150?u=jade9',p:'instagram',f:22000000,e:5.4,v:true,ni:'Skincare'},
 {u:'@samarafelippo',n:'Samara Felippo',a:'https://i.pravatar.cc/150?u=samara10',p:'instagram',f:2300000,e:10.1,v:true,ni:'Maternidade'},
-{u:'@nfranca',n:'Natália França',a:'https://i.pravatar.cc/150?u=natalia11',p:'tiktok',f:8500000,e:14.5,v:true,ni:'Cabelo'},
-{u:'@ricodemar',n:'Rica de Marré',a:'https://i.pravatar.cc/150?u=rica12',p:'tiktok',f:5800000,e:16.3,v:true,ni:'LGBTQ+ Maquiagem'},
-{u:'@letticiaa',n:'Letticia Munniz',a:'https://i.pravatar.cc/150?u=letticia13',p:'tiktok',f:9200000,e:12.7,v:true,ni:'Cabelo'},
-{u:'@taizalves',n:'Taís Araujo',a:'https://i.pravatar.cc/150?u=tais14',p:'instagram',f:14000000,e:4.2,v:true,ni:'Beleza & Maternidade'}
+{u:'@letticiamunniz',n:'Letticia Munniz',a:'https://i.pravatar.cc/150?u=letticia13',p:'tiktok',f:9200000,e:12.7,v:true,ni:'Cabelo'},
+{u:'@ricademarresm',n:'Rica de Marre',a:'https://i.pravatar.cc/150?u=rica12',p:'tiktok',f:5800000,e:16.3,v:true,ni:'LGBTQ+ Maquiagem'},
+{u:'@juliette',n:'Juliette Freire',a:'https://i.pravatar.cc/150?u=juliette15',p:'instagram',f:29000000,e:5.6,v:true,ni:'Maquiagem'},
+{u:'@viihtube',n:'Viih Tube',a:'https://i.pravatar.cc/150?u=viih16',p:'instagram',f:33100000,e:4.9,v:true,ni:'Maternidade'},
+{u:'@niinasecrets',n:'Niina Secrets',a:'https://i.pravatar.cc/150?u=niina17',p:'instagram',f:5500000,e:6.8,v:true,ni:'Maquiagem'},
+{u:'@diegogloow',n:'Diego Glow',a:'https://i.pravatar.cc/150?u=diego18',p:'tiktok',f:5800000,e:15.2,v:true,ni:'LGBTQ+ Maquiagem'},
+{u:'@taisaraujo',n:'Tais Araujo',a:'https://i.pravatar.cc/150?u=tais14',p:'instagram',f:14000000,e:4.2,v:true,ni:'Beleza & Maternidade'},
+{u:'@tfrancaah',n:'Tata Estaniecki',a:'https://i.pravatar.cc/150?u=tata13',p:'instagram',f:9800000,e:7.5,v:true,ni:'Maternidade'}
 ];
 const IT=[
 {t:'Essa base de R$30 é MELHOR que a de R$300',s:'Maquiadora compara base drugstore com high-end em teste de 12h. Resultado surpreende.',id2:'Split-face: metade do rosto com cada. Timer 12h, check a cada 3h. Revelar resultado com close-up.',tr:'Gente, eu sei que vocês não vão acreditar. Essa base custa 30 reais. Essa outra, 300. Vou usar uma em cada lado do rosto e vamos ver em 12 horas qual sobrevive...',p:'tiktok',tp:'Video',ht:'Choque',tg:['maquiagem','base','drugstore','comparativo']},
@@ -369,15 +373,208 @@ init();
 </html>
 HTMLEOF
 
+# ── requirements.txt ──
+cat > requirements.txt << 'REQEOF'
+google-genai>=1.0.0
+aiohttp>=3.9.0
+beautifulsoup4>=4.12.0
+yt-dlp>=2024.0.0
+REQEOF
+echo "✓ requirements.txt"
+
+# ── backend.py ──
+cat > backend.py << 'BACKEOF'
+#!/usr/bin/env python3
+"""Punk.io Backend — Server + Gemini AI + Profile Scraping + Metrics"""
+import json, os, re, time, hashlib, socket, sys, traceback
+import urllib.request, urllib.parse, urllib.error, ssl
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+
+GEMINI_API_KEY = "AIzaSyAfDzvmFd6fKgj8xtT5pzY5WRF2muGm7bE"
+GEMINI_MODEL = "gemini-2.0-flash-lite"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8443
+_cache = {}
+_cache_ttl = {}
+CACHE_DURATION = 300
+PROFILES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profiles.json")
+ssl_ctx = ssl.create_default_context()
+
+def load_profiles():
+    try:
+        with open(PROFILES_FILE, "r") as f: return json.load(f)
+    except: return []
+
+def save_profiles(profiles):
+    with open(PROFILES_FILE, "w") as f: json.dump(profiles, f, ensure_ascii=False, indent=2)
+
+def gemini(prompt, max_tokens=2048):
+    url = f"{GEMINI_URL}?key={GEMINI_API_KEY}"
+    payload = json.dumps({"contents":[{"parts":[{"text":prompt}]}],"generationConfig":{"temperature":0.4,"maxOutputTokens":max_tokens}}).encode()
+    req = urllib.request.Request(url, data=payload, headers={"Content-Type":"application/json"})
+    try:
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=30) as resp:
+            data = json.loads(resp.read())
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        print(f"[Gemini] Erro: {e}"); return None
+
+def gemini_json(prompt, max_tokens=2048):
+    result = gemini(prompt, max_tokens)
+    if not result: return None
+    result = result.strip()
+    if result.startswith("```"):
+        result = re.sub(r'^```\w*\n?', '', result)
+        result = re.sub(r'\n?```$', '', result)
+    try: return json.loads(result)
+    except: print(f"[Gemini] JSON parse failed: {result[:200]}"); return None
+
+def ai_analyze_content(title, platform, niche="beleza"):
+    return gemini_json(f"""Analise este conteudo viral de {platform} do Brasil (nicho: {niche}).
+Titulo: {title}
+Retorne JSON puro sem markdown:
+{{"summary":"resumo completo em 3-4 frases","idea":"ideia central replicavel em 2-3 frases","transcription":"transcricao COMPLETA e detalhada do que a pessoa fala no video, minimo 250 palavras","hook":"hook exato dos 3 primeiros segundos","hookType":"um de: Curiosidade|Controversia|Storytelling|Desafio|Tutorial|Choque|Pergunta|Promessa","punchLine":"frase de impacto principal","cta":"call to action","emotionalTrigger":"gatilho emocional","tags":["tag1","tag2","tag3","tag4","tag5"]}}""", max_tokens=3000)
+
+def ai_full_transcription(title, summary):
+    return gemini(f"""Gere uma transcricao COMPLETA em portugues brasileiro para este video viral:
+Titulo: {title}
+Resumo: {summary}
+A transcricao deve ter entre 300-500 palavras, soar natural, usar girias brasileiras, ter hook FORTE nos primeiros 2 segundos. Retorne APENAS a transcricao.""", max_tokens=1500)
+
+def ai_generate_trending(niche="maquiagem"):
+    return gemini_json(f"""Gere 5 ideias de conteudo viral ATUAL para o nicho de {niche} no Brasil (Instagram/TikTok).
+Retorne JSON puro:
+[{{"title":"titulo chamativo","summary":"resumo em 2-3 frases","idea":"ideia central replicavel","transcription":"transcricao completa (200+ palavras, em pt-BR)","platform":"tiktok ou instagram","type":"Video, Reel, Carousel, Short","hookType":"Curiosidade|Controversia|Storytelling|Desafio|Tutorial|Choque|Pergunta|Promessa","tags":["tag1","tag2","tag3"]}}]""", max_tokens=4000)
+
+def ai_analyze_profile(username):
+    return gemini_json(f"""Analise o perfil @{username} do Instagram/TikTok brasileiro (nicho beleza/maquiagem/cabelo/maternidade/LGBTQ+).
+Retorne JSON puro:
+{{"displayName":"nome","bio":"bio estimada","niche":"nicho principal","contentStyle":"estilo em 1 frase","targetAudience":"publico-alvo","estimatedFollowers":0,"estimatedEngagement":0.0,"isVerified":true,"topContentTypes":["tipo1","tipo2"],"bestPostingTimes":"melhores horarios"}}""")
+
+def fetch_url(url, headers=None):
+    cache_key = hashlib.md5(url.encode()).hexdigest()
+    now = time.time()
+    if cache_key in _cache and _cache_ttl.get(cache_key, 0) > now: return _cache[cache_key]
+    h = {"User-Agent":"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15","Accept-Language":"pt-BR,pt;q=0.9"}
+    if headers: h.update(headers)
+    req = urllib.request.Request(url, headers=h)
+    try:
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as resp:
+            data = resp.read().decode("utf-8", errors="ignore")
+            _cache[cache_key] = data; _cache_ttl[cache_key] = now + CACHE_DURATION; return data
+    except Exception as e: print(f"[Fetch] Erro: {url} -> {e}"); return None
+
+def scrape_profile_metrics(username):
+    username = username.lstrip("@").strip().strip("/")
+    result = {"username": f"@{username}", "platform": "instagram", "source": "ai"}
+    nja = fetch_url(f"https://www.notjustanalytics.com/instagram/{username}")
+    if nja:
+        m = re.search(r'"followers":\s*"?([\d,.]+)', nja)
+        if m: result["followers"] = parse_num(m.group(1)); result["source"] = "notjustanalytics"
+        m = re.search(r'engagement.*?([\d.]+)\s*%', nja, re.I)
+        if m: result["engagementRate"] = float(m.group(1))
+    ai = ai_analyze_profile(username)
+    if ai:
+        for k in ["displayName","bio","niche","contentStyle","targetAudience","topContentTypes","bestPostingTimes"]:
+            if k in ai: result[k] = ai[k]
+        if "estimatedFollowers" in ai and result.get("followers", 0) == 0: result["followers"] = ai["estimatedFollowers"]
+        if "estimatedEngagement" in ai and "engagementRate" not in result: result["engagementRate"] = ai["estimatedEngagement"]
+        if "isVerified" in ai: result["isVerified"] = ai["isVerified"]
+    result.setdefault("displayName", username.replace(".", " ").replace("_", " ").title())
+    result.setdefault("followers", 0); result.setdefault("engagementRate", 0)
+    result.setdefault("bio", ""); result.setdefault("niche", "Beleza"); result.setdefault("isVerified", False)
+    result["avatarURL"] = f"https://i.pravatar.cc/150?u={username}"
+    return result
+
+def parse_num(s):
+    s = s.strip().replace(",", "").replace(".", "")
+    mult = 1
+    if s[-1:].upper() == "M": mult = 1_000_000; s = s[:-1]
+    elif s[-1:].upper() == "K": mult = 1_000; s = s[:-1]
+    try: return int(float(s) * mult)
+    except: return 0
+
+def extract_username(text):
+    m = re.search(r'instagram\.com/([a-zA-Z0-9_.]+)', text)
+    if m and m.group(1) not in ("reel","p","stories","explore","tv","accounts"): return m.group(1)
+    m = re.search(r'@([a-zA-Z0-9_.]+)', text)
+    if m: return m.group(1)
+    text = text.strip().lstrip("@")
+    if re.match(r'^[a-zA-Z0-9_.]+$', text): return text
+    return None
+
+class Handler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        p = urllib.parse.urlparse(self.path)
+        if p.path == "/api/status": self._json({"status":"ok","gemini":True,"model":GEMINI_MODEL,"profiles":len(load_profiles())})
+        elif p.path == "/api/profiles": self._json(load_profiles())
+        elif p.path.startswith("/api/profile/"): self._json(scrape_profile_metrics(p.path.split("/api/profile/")[1].strip("/")))
+        elif p.path == "/api/trending":
+            q = urllib.parse.parse_qs(p.query); niche = q.get("niche",["maquiagem"])[0]
+            self._json({"content":ai_generate_trending(niche) or [],"niche":niche})
+        elif p.path == "/api/analyze":
+            q = urllib.parse.parse_qs(p.query)
+            self._json(ai_analyze_content(q.get("title",[""])[0],q.get("platform",["instagram"])[0],q.get("niche",["beleza"])[0]) or {"error":"Analysis failed"})
+        elif p.path == "/api/transcribe":
+            q = urllib.parse.parse_qs(p.query)
+            self._json({"transcription":ai_full_transcription(q.get("title",[""])[0],q.get("summary",[""])[0]) or "Indisponivel"})
+        else: super().do_GET()
+    def do_POST(self):
+        p = urllib.parse.urlparse(self.path); body = self._body()
+        if p.path == "/api/profile/add":
+            text = body.get("text","") or body.get("url","") or body.get("username","")
+            username = extract_username(text)
+            if not username: self._json({"error":"Username invalido","input":text}, 400); return
+            profile = scrape_profile_metrics(username); profiles = load_profiles()
+            existing = [i for i, p in enumerate(profiles) if p.get("username") == f"@{username}"]
+            if existing: profiles[existing[0]] = profile
+            else: profiles.append(profile)
+            save_profiles(profiles); self._json({"success":True,"username":f"@{username}","profile":profile})
+        elif p.path == "/api/profile/remove":
+            username = body.get("username","").lstrip("@"); profiles = load_profiles()
+            profiles = [p for p in profiles if p.get("username") != f"@{username}"]
+            save_profiles(profiles); self._json({"success":True,"removed":username})
+        else: self.send_error(404)
+    def do_OPTIONS(self): self.send_response(200); self._cors(); self.end_headers()
+    def _json(self, data, code=200):
+        self.send_response(code); self.send_header("Content-Type","application/json; charset=utf-8"); self._cors(); self.end_headers()
+        self.wfile.write(json.dumps(data, ensure_ascii=False).encode())
+    def _cors(self):
+        self.send_header("Access-Control-Allow-Origin","*"); self.send_header("Access-Control-Allow-Methods","GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers","Content-Type")
+    def _body(self):
+        try: length = int(self.headers.get("Content-Length",0)); return json.loads(self.rfile.read(length).decode())
+        except: return {}
+    def log_message(self, fmt, *args):
+        path = str(args[0]) if args else ""
+        if "/api/" in path: print(f"  [API] {path}")
+
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try: s.connect(("8.8.8.8",80)); return s.getsockname()[0]
+    except: return "127.0.0.1"
+    finally: s.close()
+
+if __name__ == "__main__":
+    os.chdir(os.path.dirname(os.path.abspath(__file__))); ip = get_ip()
+    print(f"\n  PUNK.IO + GEMINI AI\n  Local:  http://localhost:{PORT}\n  Rede:   http://{ip}:{PORT}\n  Gemini: {GEMINI_MODEL}\n  Ctrl+C para parar\n")
+    try: HTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+    except KeyboardInterrupt: print("\nServidor encerrado.")
+BACKEOF
+echo "✓ backend.py"
+
 echo ""
-echo "╔══════════════════════════════════════════╗"
-echo "║  ✅ PUNK.IO INSTALADO COM SUCESSO!       ║"
-echo "╠══════════════════════════════════════════╣"
-echo "║                                          ║"
-echo "║  Para iniciar, rode:                     ║"
-echo "║  python3 server.py                       ║"
-echo "║                                          ║"
-echo "╚══════════════════════════════════════════╝"
+echo "╔══════════════════════════════════════════════╗"
+echo "║  PUNK.IO + GEMINI AI INSTALADO!              ║"
+echo "╠══════════════════════════════════════════════╣"
+echo "║                                              ║"
+echo "║  Para iniciar, rode:                         ║"
+echo "║  python3 backend.py                          ║"
+echo "║                                              ║"
+echo "║  No iPad/iPhone (mesmo Wi-Fi):               ║"
+echo "║  Safari -> Compartilhar -> Tela de Inicio    ║"
+echo "║                                              ║"
+echo "╚══════════════════════════════════════════════╝"
 echo ""
 
 ls -la "$DIR"
