@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Punk.io">
+  <meta name="theme-color" content="#7c3aed">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>Punk.io</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg: #0a0a0a;
+      --bg2: #141414;
+      --bg3: #1e1e1e;
+      --bg4: #2a2a2a;
+      --text: #f5f5f5;
+      --text2: #a0a0a0;
+      --text3: #666;
+      --purple: #7c3aed;
+      --pink: #ec4899;
+      --orange: #f59e0b;
+      --green: #22c55e;
+      --blue: #3b82f6;
+      --red: #ef4444;
+      --gradient: linear-gradient(135deg, #7c3aed, #ec4899);
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      padding-top: var(--safe-top);
+    }
+
+    /* ═══ HEADER ═══ */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 12px 16px;
+    }
+    .header-top { display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--gradient); display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 900; color: #fff;
+    }
+    .logo-text { font-size: 22px; font-weight: 900; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-actions { display: flex; gap: 8px; }
+    .header-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none;
+      background: var(--bg3); color: var(--text2); font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all .2s;
+    }
+    .header-btn:active { transform: scale(0.92); }
+    .live-bar {
+      display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11px; color: var(--text3);
+    }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 8px rgba(34,197,94,0.5); animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* ═══ SEARCH ═══ */
+    .search-bar {
+      display: none; margin-top: 10px;
+    }
+    .search-bar.active { display: flex; }
+    .search-bar input {
+      flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--bg4);
+      background: var(--bg2); color: var(--text); font-size: 14px; outline: none;
+    }
+    .search-bar input:focus { border-color: var(--purple); }
+
+    /* ═══ FILTER BAR ═══ */
+    .filter-bar {
+      display: flex; gap: 8px; padding: 12px 16px; overflow-x: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      padding: 7px 14px; border-radius: 20px; border: none;
+      background: var(--bg3); color: var(--text2); font-size: 12px; font-weight: 600;
+      white-space: nowrap; cursor: pointer; transition: all .2s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .filter-chip.active { background: var(--purple); color: #fff; }
+    .filter-chip:active { transform: scale(0.95); }
+
+    /* ═══ PROFILES SCROLL ═══ */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 16px 8px; font-size: 15px; font-weight: 700;
+    }
+    .section-header span { display: flex; align-items: center; gap: 6px; }
+    .section-header a { color: var(--purple); font-size: 12px; font-weight: 600; text-decoration: none; }
+    .profiles-scroll {
+      display: flex; gap: 12px; padding: 0 16px 8px; overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .profiles-scroll::-webkit-scrollbar { display: none; }
+    .profile-card {
+      min-width: 110px; padding: 14px 10px; border-radius: 16px;
+      background: var(--bg2); text-align: center; flex-shrink: 0; cursor: pointer;
+      transition: transform .2s; border: 1px solid rgba(255,255,255,0.04);
+    }
+    .profile-card:active { transform: scale(0.96); }
+    .profile-avatar {
+      width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 8px;
+      background: var(--bg4); border: 2.5px solid; border-image: var(--gradient) 1;
+      border-image-slice: 1; overflow: hidden; position: relative;
+    }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .profile-name { font-size: 11px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .profile-handle { font-size: 10px; color: var(--text3); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .profile-followers { font-size: 10px; color: var(--purple); font-weight: 600; }
+    .profile-niche {
+      font-size: 9px; font-weight: 600; margin-top: 6px;
+      padding: 3px 8px; border-radius: 10px;
+      background: rgba(124,58,237,0.15); color: var(--purple); display: inline-block;
+    }
+    .verified { color: var(--blue); font-size: 10px; }
+
+    /* ═══ CONTENT CARDS ═══ */
+    .feed { padding: 0 16px 100px; display: flex; flex-direction: column; gap: 16px; }
+    .card {
+      border-radius: 16px; overflow: hidden; background: var(--bg2);
+      border: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: transform .2s;
+    }
+    .card:active { transform: scale(0.985); }
+    .card-thumb {
+      position: relative; aspect-ratio: 16/9; background: var(--bg3); overflow: hidden;
+    }
+    .card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .card-thumb-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,0.5) 0%, transparent 50%);
+    }
+    .card-badge {
+      position: absolute; top: 10px; left: 10px;
+      padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); color: #fff;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .card-score {
+      position: absolute; top: 10px; right: 10px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+      display: flex; align-items: center; gap: 3px;
+    }
+    .card-body { padding: 14px; }
+    .card-title { font-size: 15px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-summary { font-size: 13px; color: var(--text2); line-height: 1.4; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-author { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .card-author img { width: 24px; height: 24px; border-radius: 50%; background: var(--bg4); }
+    .card-author-name { font-size: 12px; font-weight: 600; }
+    .card-hook-type {
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px;
+      background: rgba(124,58,237,0.15); color: var(--purple); margin-left: auto;
+    }
+    .card-metrics { display: flex; gap: 14px; margin-bottom: 10px; }
+    .card-metric { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 3px; }
+    .card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .card-tag {
+      font-size: 10px; padding: 3px 8px; border-radius: 10px;
+      background: var(--bg3); color: var(--text3);
+    }
+
+    /* ═══ DETAIL MODAL ═══ */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    }
+    .modal-overlay.active { display: block; }
+    .modal {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 201;
+      max-height: 92dvh; background: var(--bg); border-radius: 20px 20px 0 0;
+      overflow-y: auto; transform: translateY(100%); transition: transform .35s cubic-bezier(0.32,0.72,0,1);
+      padding-bottom: calc(20px + var(--safe-bottom));
+    }
+    .modal.active { transform: translateY(0); }
+    .modal-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--bg4); margin: 10px auto 0; }
+    .modal-hero { position: relative; aspect-ratio: 16/9; }
+    .modal-hero img { width: 100%; height: 100%; object-fit: cover; }
+    .modal-hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(0deg, var(--bg) 0%, transparent 60%);
+    }
+    .modal-hero-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; }
+    .modal-hero-badges { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .modal-hero-badge {
+      padding: 4px 10px; border-radius: 14px; font-size: 10px; font-weight: 700;
+      background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); color: #fff;
+    }
+    .modal-hero-title { font-size: 22px; font-weight: 900; line-height: 1.2; }
+
+    .modal-content { padding: 0 16px; }
+
+    .modal-author {
+      display: flex; align-items: center; gap: 12px; padding: 16px;
+      background: var(--bg2); border-radius: 14px; margin: 16px 0;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .modal-author img { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--purple); }
+    .modal-author-info { flex: 1; }
+    .modal-author-name { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+    .modal-author-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .modal-author-eng { text-align: right; }
+    .modal-author-eng small { font-size: 10px; color: var(--text3); display: block; }
+    .modal-author-eng strong { font-size: 15px; color: var(--green); }
+
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0;
+    }
+    .metric-box {
+      text-align: center; padding: 14px 8px; border-radius: 12px;
+      background: var(--bg2); border: 1px solid rgba(255,255,255,0.04);
+    }
+    .metric-box .icon { font-size: 20px; margin-bottom: 4px; }
+    .metric-box .value { font-size: 17px; font-weight: 800; }
+    .metric-box .label { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+    /* tabs */
+    .tabs { display: flex; background: var(--bg3); border-radius: 12px; padding: 3px; margin: 16px 0; }
+    .tab {
+      flex: 1; padding: 10px 6px; border: none; border-radius: 10px; cursor: pointer;
+      background: none; color: var(--text3); font-size: 11px; font-weight: 600;
+      text-align: center; transition: all .2s;
+    }
+    .tab.active { background: var(--purple); color: #fff; }
+    .tab:active { transform: scale(0.96); }
+    .tab-content { display: none; padding: 16px; background: var(--bg2); border-radius: 14px; line-height: 1.6; font-size: 14px; }
+    .tab-content.active { display: block; }
+    .tab-content h3 { font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .tab-content p { color: var(--text2); }
+
+    .hook-section {
+      padding: 12px; border-radius: 10px; margin-bottom: 10px;
+    }
+    .hook-section .label { font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
+    .hook-section p { font-size: 13px; }
+    .hook-curiosidade { background: rgba(239,68,68,0.08); } .hook-curiosidade .label { color: var(--red); }
+    .hook-punch { background: rgba(245,158,11,0.08); } .hook-punch .label { color: var(--orange); }
+    .hook-cta { background: rgba(34,197,94,0.08); } .hook-cta .label { color: var(--green); }
+    .hook-trigger { background: rgba(124,58,237,0.08); } .hook-trigger .label { color: var(--purple); }
+
+    .clone-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 16px; border: none; border-radius: 14px; cursor: pointer;
+      background: var(--gradient); color: #fff; font-size: 16px; font-weight: 800;
+      margin: 20px 0; transition: transform .15s;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+    }
+    .clone-btn:active { transform: scale(0.97); }
+
+    /* ═══ CLONE SHEET ═══ */
+    .clone-sheet { padding: 20px 16px; }
+    .clone-sheet h2 { text-align: center; font-size: 20px; margin-bottom: 4px; }
+    .clone-sheet .subtitle { text-align: center; font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+    .clone-field { margin-bottom: 16px; }
+    .clone-field label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.3px; display: block; margin-bottom: 6px; }
+    .clone-field input, .clone-field textarea, .clone-field select {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--bg4);
+      background: var(--bg3); color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+      resize: vertical;
+    }
+    .clone-field input:focus, .clone-field textarea:focus { border-color: var(--purple); }
+    .hook-types { display: flex; gap: 6px; flex-wrap: wrap; }
+    .hook-type-chip {
+      padding: 6px 12px; border-radius: 16px; border: none; cursor: pointer;
+      background: var(--bg3); color: var(--text2); font-size: 11px; font-weight: 600; transition: all .2s;
+    }
+    .hook-type-chip.active { background: var(--purple); color: #fff; }
+    .generate-btn {
+      width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer;
+      background: var(--gradient); color: #fff; font-size: 15px; font-weight: 700;
+      margin: 10px 0 16px; transition: transform .15s;
+    }
+    .generate-btn:active { transform: scale(0.97); }
+    .clone-result {
+      display: none; padding: 16px; border-radius: 12px;
+      background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2);
+      white-space: pre-wrap; font-size: 13px; line-height: 1.6; margin-bottom: 12px;
+    }
+    .clone-result.active { display: block; }
+    .clone-actions { display: flex; gap: 10px; }
+    .clone-actions button {
+      flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: all .2s;
+    }
+    .btn-copy { background: var(--bg3); color: var(--text); }
+    .btn-share { background: var(--bg3); color: var(--text); }
+    .btn-copy:active, .btn-share:active { transform: scale(0.96); }
+
+    /* ═══ TAB BAR ═══ */
+    .tabbar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
+      display: flex; justify-content: space-around;
+      background: rgba(10,10,10,0.9); backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 8px 0 calc(8px + var(--safe-bottom));
+    }
+    .tabbar-item {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 6px 16px; border: none; background: none; color: var(--text3);
+      font-size: 10px; font-weight: 600; cursor: pointer; transition: color .2s;
+    }
+    .tabbar-item.active { color: var(--purple); }
+    .tabbar-item .icon { font-size: 22px; }
+
+    /* ═══ SCREENS ═══ */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ═══ DISCOVER ═══ */
+    .discover-section { padding: 0 16px; margin-bottom: 20px; }
+    .hook-preview {
+      display: flex; gap: 12px; padding: 14px; background: var(--bg2); border-radius: 12px;
+      margin-bottom: 10px; border-left: 3px solid; cursor: pointer; transition: transform .2s;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .hook-preview:active { transform: scale(0.98); }
+    .hook-preview-bar { width: 3px; border-radius: 2px; background: var(--gradient); flex-shrink: 0; }
+    .hook-preview-top { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .hook-preview-type { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; background: rgba(124,58,237,0.15); color: var(--purple); }
+    .hook-preview-text { font-size: 13px; font-weight: 600; line-height: 1.3; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .hook-preview-author { font-size: 11px; color: var(--text3); }
+
+    .ideas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .idea-card {
+      padding: 14px; background: var(--bg2); border-radius: 12px; cursor: pointer;
+      min-height: 130px; display: flex; flex-direction: column; transition: transform .2s;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .idea-card:active { transform: scale(0.97); }
+    .idea-card-icon { font-size: 22px; margin-bottom: 8px; }
+    .idea-card-title { font-size: 12px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .idea-card-desc { font-size: 11px; color: var(--text3); flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .idea-card-views { font-size: 10px; color: var(--purple); font-weight: 700; margin-top: 8px; }
+
+    /* ═══ SETTINGS ═══ */
+    .settings-brand { text-align: center; padding: 30px 0 20px; }
+    .settings-brand .icon { font-size: 50px; margin-bottom: 8px; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .settings-brand h2 { font-size: 24px; font-weight: 900; }
+    .settings-brand p { font-size: 12px; color: var(--text3); }
+    .settings-section { padding: 0 16px; margin-bottom: 20px; }
+    .settings-section h3 { font-size: 13px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding: 0 4px; }
+    .settings-group { background: var(--bg2); border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04); }
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row label { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    .toggle {
+      width: 48px; height: 28px; border-radius: 14px; border: none;
+      background: var(--bg4); position: relative; cursor: pointer; transition: background .2s;
+    }
+    .toggle.on { background: var(--purple); }
+    .toggle::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s;
+    }
+    .toggle.on::after { transform: translateX(20px); }
+
+    /* ═══ LOADING ═══ */
+    .loading { text-align: center; padding: 60px 0; }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--bg4);
+      border-top-color: var(--purple); border-radius: 50%;
+      animation: spin .8s linear infinite; margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 12px; color: var(--text3); }
+
+    /* ═══ EMPTY STATE ═══ */
+    .empty { text-align: center; padding: 80px 30px; }
+    .empty .icon { font-size: 50px; margin-bottom: 16px; opacity: 0.3; }
+    .empty h3 { font-size: 18px; margin-bottom: 8px; }
+    .empty p { font-size: 13px; color: var(--text3); }
+
+    /* ═══ INSTALL BANNER ═══ */
+    .install-banner {
+      display: none; margin: 12px 16px; padding: 14px; border-radius: 14px;
+      background: var(--gradient); text-align: center;
+    }
+    .install-banner.show { display: block; }
+    .install-banner h4 { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .install-banner p { font-size: 11px; color: rgba(255,255,255,0.8); }
+
+    @media (min-width: 768px) {
+      .feed { max-width: 600px; margin: 0 auto; }
+      .modal { max-width: 600px; left: 50%; transform: translate(-50%, 100%); }
+      .modal.active { transform: translate(-50%, 0); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div class="header-top">
+    <div class="logo">
+      <div class="logo-icon">P</div>
+      <span class="logo-text">Punk.io</span>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" onclick="toggleSearch()">🔍</button>
+      <button class="header-btn" onclick="refreshFeed()">🔄</button>
+    </div>
+  </div>
+  <div class="search-bar" id="searchBar">
+    <input type="search" placeholder="Buscar conteúdos, creators, tags..." oninput="handleSearch(this.value)">
+  </div>
+  <div class="live-bar">
+    <div class="live-dot"></div>
+    <span>Atualizando em tempo real</span>
+    <span style="margin-left:auto" id="lastUpdate">Atualizado: Agora</span>
+  </div>
+</header>
+
+<!-- ═══ SCREENS ═══ -->
+
+<!-- FEED SCREEN -->
+<div class="screen active" id="screenFeed">
+  <div class="filter-bar" id="filterBar"></div>
+
+  <div class="install-banner" id="installBanner">
+    <h4>📲 Instalar Punk.io</h4>
+    <p>Toque em "Compartilhar" → "Adicionar à Tela de Início"</p>
+  </div>
+
+  <div class="section-header">
+    <span>👑 Perfis em Alta</span>
+    <a href="#" onclick="switchTab(3); return false;">Ver todos</a>
+  </div>
+  <div class="profiles-scroll" id="profilesScroll"></div>
+
+  <div class="section-header">
+    <span>🔥 Viralizando Agora</span>
+    <span style="font-size:12px;color:var(--text3);font-weight:400" id="contentCount"></span>
+  </div>
+  <div class="feed" id="feed"></div>
+  <div class="loading" id="feedLoading">
+    <div class="spinner"></div>
+    <div class="loading-text">Escaneando a internet...</div>
+  </div>
+</div>
+
+<!-- DISCOVER SCREEN -->
+<div class="screen" id="screenDiscover">
+  <div class="section-header"><span>⚡ Top Hooks do Dia</span></div>
+  <div class="discover-section" id="topHooks"></div>
+  <div class="section-header"><span>💡 Ideias para Clonar</span></div>
+  <div class="discover-section"><div class="ideas-grid" id="ideasGrid"></div></div>
+</div>
+
+<!-- SAVED SCREEN -->
+<div class="screen" id="screenSaved">
+  <div class="empty" id="savedEmpty">
+    <div class="icon">🔖</div>
+    <h3>Nenhum conteúdo salvo</h3>
+    <p>Salve conteúdos virais para acessar depois e clonar com Hook Punch</p>
+  </div>
+  <div class="feed" id="savedFeed" style="padding-top:16px"></div>
+</div>
+
+<!-- SETTINGS SCREEN -->
+<div class="screen" id="screenSettings">
+  <div class="settings-brand">
+    <div class="icon">⚡</div>
+    <h2>Punk.io</h2>
+    <p>Sistema de Ideias Infinitas</p>
+    <p style="margin-top:4px;font-size:11px">v1.0.0</p>
+  </div>
+  <div class="settings-section">
+    <h3>Notificações</h3>
+    <div class="settings-group">
+      <div class="settings-row"><label>🔔 Alertas de conteúdo viral</label><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="settings-row"><label>🔄 Atualização automática</label><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+    </div>
+  </div>
+  <div class="settings-section">
+    <h3>Plataformas</h3>
+    <div class="settings-group" id="platformSettings"></div>
+  </div>
+</div>
+
+<!-- ═══ DETAIL MODAL ═══ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()"></div>
+<div class="modal" id="modal">
+  <div class="modal-handle"></div>
+  <div id="modalBody"></div>
+</div>
+
+<!-- ═══ TAB BAR ═══ -->
+<nav class="tabbar">
+  <button class="tabbar-item active" data-tab="0" onclick="switchTab(0)"><span class="icon">🔥</span>Viral</button>
+  <button class="tabbar-item" data-tab="1" onclick="switchTab(1)"><span class="icon">✨</span>Descobrir</button>
+  <button class="tabbar-item" data-tab="2" onclick="switchTab(2)"><span class="icon">🔖</span>Salvos</button>
+  <button class="tabbar-item" data-tab="3" onclick="switchTab(3)"><span class="icon">⚙️</span>Config</button>
+</nav>
+
+<script>
+// ═══════════════════════════════════════
+// PUNK.IO — App Engine
+// ═══════════════════════════════════════
+
+const PLATFORMS = [
+  { id: 'all', name: 'Todos', icon: '✨' },
+  { id: 'tiktok', name: 'TikTok', icon: '🎵' },
+  { id: 'instagram', name: 'Instagram', icon: '📸' },
+  { id: 'youtube', name: 'YouTube', icon: '📺' },
+  { id: 'twitter', name: 'X/Twitter', icon: '💬' },
+  { id: 'threads', name: 'Threads', icon: '🧵' },
+];
+
+const HOOK_TYPES = ['Curiosidade','Controvérsia','Storytelling','Desafio','Tutorial','Choque','Pergunta','Promessa'];
+
+let allContent = [];
+let filteredContent = [];
+let savedContent = [];
+let currentPlatform = 'all';
+let refreshTimer = null;
+
+// ═══ DATA ═══
+
+function generateContent() {
+  const creators = [
+    { id: 'c1', username: '@lucasdigital', name: 'Lucas Digital', avatar: 'https://i.pravatar.cc/150?u=lucas1', platform: 'tiktok', followers: 2500000, engagement: 8.5, bio: 'Negócios digitais 🚀', verified: true, niche: 'Negócios Digitais' },
+    { id: 'c2', username: '@mariagrowth', name: 'Maria Growth', avatar: 'https://i.pravatar.cc/150?u=maria2', platform: 'instagram', followers: 890000, engagement: 12.3, bio: 'Growth hacker', verified: true, niche: 'Growth Marketing' },
+    { id: 'c3', username: '@pedrocreator', name: 'Pedro Creator', avatar: 'https://i.pravatar.cc/150?u=pedro3', platform: 'youtube', followers: 1200000, engagement: 6.7, bio: 'Conteúdo que converte', verified: true, niche: 'Content Creation' },
+    { id: 'c4', username: '@anatrends', name: 'Ana Trends', avatar: 'https://i.pravatar.cc/150?u=ana4', platform: 'tiktok', followers: 3100000, engagement: 15.2, bio: 'Caçadora de trends', verified: true, niche: 'Trends & Viral' },
+    { id: 'c5', username: '@thiagotech', name: 'Thiago Tech', avatar: 'https://i.pravatar.cc/150?u=thiago5', platform: 'twitter', followers: 450000, engagement: 9.1, bio: 'AI + Criatividade', verified: false, niche: 'Tech & IA' },
+    { id: 'c6', username: '@juliacopy', name: 'Julia Copy', avatar: 'https://i.pravatar.cc/150?u=julia6', platform: 'threads', followers: 320000, engagement: 11.8, bio: 'Copy que converte', verified: false, niche: 'Copywriting' },
+    { id: 'c7', username: '@rafadesign', name: 'Rafa Design', avatar: 'https://i.pravatar.cc/150?u=rafa7', platform: 'instagram', followers: 670000, engagement: 7.9, bio: 'Design que para o scroll', verified: true, niche: 'Design & Branding' },
+    { id: 'c8', username: '@brunoedits', name: 'Bruno Edits', avatar: 'https://i.pravatar.cc/150?u=bruno8', platform: 'tiktok', followers: 1800000, engagement: 13.4, bio: 'CapCut master', verified: true, niche: 'Video Editing' },
+    { id: 'c9', username: '@carolneuro', name: 'Carol Neuro', avatar: 'https://i.pravatar.cc/150?u=carol9', platform: 'youtube', followers: 560000, engagement: 10.5, bio: 'Neurocientista do viral', verified: true, niche: 'Neurociência' },
+    { id: 'c10', username: '@danicommerce', name: 'Dani Commerce', avatar: 'https://i.pravatar.cc/150?u=dani10', platform: 'instagram', followers: 410000, engagement: 8.9, bio: 'E-commerce de 0 a 1M', verified: false, niche: 'E-commerce' },
+  ];
+
+  const items = [
+    {
+      title: 'Como eu fiz R$50K em 30 dias com IA',
+      summary: 'Creator mostra passo a passo como usou ferramentas de IA para automatizar um negócio digital e faturar R$50K no primeiro mês.',
+      idea: 'Usar IA generativa para criar conteúdo em escala para múltiplas plataformas, monetizando através de afiliados e produtos digitais. O diferencial está na automação completa do funil de vendas.',
+      transcription: 'Eu sei que parece mentira, mas nos últimos 30 dias eu faturei mais de 50 mil reais usando apenas inteligência artificial. E não, eu não sou programador. Vou te mostrar exatamente como fiz isso, passo a passo, sem enrolação...',
+      platform: 'tiktok', type: 'Video', hookType: 'Promessa',
+      tags: ['IA', 'dinheiro', 'negócio digital', 'automação'],
+    },
+    {
+      title: 'O segredo que ninguém te conta sobre o algoritmo',
+      summary: 'Especialista em growth revela o mecanismo interno do algoritmo do Instagram que determina alcance orgânico e como hackear os primeiros 30 minutos.',
+      idea: 'Focar nos primeiros 30 minutos após postar: engajamento rápido com saves e shares vale 3x mais que likes. Usar stories para direcionar tráfego ao post novo.',
+      transcription: 'Todo mundo fala sobre o algoritmo, mas ninguém explica ISSO. O Instagram tem um sistema de pontuação nos primeiros 30 minutos do seu post que define se ele vai viralizar ou morrer. Eu vou te revelar exatamente como funciona...',
+      platform: 'instagram', type: 'Reel', hookType: 'Curiosidade',
+      tags: ['algoritmo', 'Instagram', 'growth', 'hack'],
+    },
+    {
+      title: 'Pare de fazer Reels assim (está matando seu alcance)',
+      summary: 'Análise de 500 Reels virais revela os 3 erros mais comuns que creators cometem e como corrigi-los para triplicar o alcance.',
+      idea: '3 erros: hook fraco, sem texto na tela nos 2 primeiros segundos, sem CTA no meio do vídeo. Correção triplica o alcance médio.',
+      transcription: 'Se você está fazendo Reels e não passa de 500 views, provavelmente está cometendo pelo menos um desses 3 erros. Eu analisei mais de 500 Reels virais e descobri um padrão que muda tudo...',
+      platform: 'youtube', type: 'Short', hookType: 'Controvérsia',
+      tags: ['Reels', 'alcance', 'erros', 'viral'],
+    },
+    {
+      title: 'Trend alert: essa transição vai dominar 2026',
+      summary: 'Nova transição glitch + morph explodindo no TikTok. Tutorial completo usando apenas CapCut, sem After Effects.',
+      idea: 'Transição glitch-morph: gravar 2 clips com posição similar, efeito glitch de 0.3s como bridge, keyframe de escala 100→120→100%.',
+      transcription: 'Essa transição apareceu há 3 dias e já tem mais de 200 milhões de views combinados. E o melhor: você consegue fazer só com o CapCut. Olha como fica...',
+      platform: 'tiktok', type: 'Video', hookType: 'Tutorial',
+      tags: ['transição', 'TikTok', 'CapCut', 'trend'],
+    },
+    {
+      title: 'Thread: 10 lições de quem saiu de 0 a 100K seguidores',
+      summary: 'Creator documenta toda a jornada de 0 a 100K em 6 meses com prints de analytics, erros e as 10 lições mais importantes.',
+      idea: 'Crescimento: postar 3x/dia, responder TODO comentário na primeira hora, 5 collabs/mês, reciclar conteúdo entre plataformas. Consistência > viralidade.',
+      transcription: 'Há 6 meses eu tinha 0 seguidores. Hoje passei de 100K. Essa thread tem TUDO que eu aprendi — inclusive os erros que quase me fizeram desistir. Vem comigo...',
+      platform: 'twitter', type: 'Thread', hookType: 'Storytelling',
+      tags: ['crescimento', 'seguidores', 'estratégia', 'jornada'],
+    },
+    {
+      title: 'POV: você descobre esse hack de edição',
+      summary: 'Cortes a cada 2 segundos com zoom progressivo mantém retenção acima de 80%. Demonstração com métricas reais de antes e depois.',
+      idea: 'Edição rápida com cortes de 2s + zoom de 5% progressivo. Sound effects nos cortes. Retenção sobe de 45% para 82%.',
+      transcription: 'Eu não acreditava que uma mudança tão simples na edição podia fazer TANTA diferença. Olha o antes e depois das minhas métricas de retenção. Isso é real...',
+      platform: 'tiktok', type: 'Video', hookType: 'Choque',
+      tags: ['edição', 'retenção', 'hack', 'métricas'],
+    },
+    {
+      title: 'Carrossel que gerou 50K saves em 24h',
+      summary: 'Breakdown completo de um carrossel sobre ferramentas de IA grátis que viralizou. Design, copy e estrutura replicável.',
+      idea: 'Estrutura: Slide 1 = Hook visual forte. Slides 2-8 = Uma ferramenta por slide com screenshot. Slide 9 = Resumo. Slide 10 = CTA "Salva pra não perder".',
+      transcription: 'Esse carrossel levou 2 horas pra fazer e gerou mais de 50 mil saves em um dia. Vou te mostrar a estrutura exata que usei — e que você pode copiar pra qualquer nicho...',
+      platform: 'instagram', type: 'Carousel', hookType: 'Promessa',
+      tags: ['carrossel', 'saves', 'design', 'IA'],
+    },
+    {
+      title: 'Você está usando ChatGPT errado (veja como usar certo)',
+      summary: 'Guia avançado de prompt engineering para criadores. System prompts, chain of thought e templates para conteúdo 10x melhor.',
+      idea: 'Framework RICE: Role (papel), Instructions (específico), Context (exemplos), Execute (output estruturado). Templates prontos para cada tipo de conteúdo.',
+      transcription: '95% das pessoas usam o ChatGPT assim: "me dá uma ideia de post". E aí reclamam que o resultado é genérico. Vou te mostrar como os top creators estão usando de verdade...',
+      platform: 'youtube', type: 'Video', hookType: 'Pergunta',
+      tags: ['ChatGPT', 'IA', 'prompts', 'produtividade'],
+    },
+    {
+      title: 'Desafio: 30 dias postando com essa estratégia',
+      summary: 'Creator propõe desafio de 30 dias com estratégia 3-2-1 e mostra resultados de quem já completou. Crescimento médio: 340%.',
+      idea: 'Estratégia 3-2-1: 3 posts educativos, 2 de entretenimento, 1 pessoal por semana. Cada post segue Hook→Valor→CTA.',
+      transcription: 'Eu desafiei 50 pessoas a postarem por 30 dias seguindo UMA estratégia simples. Os resultados? Assustadores. A média de crescimento foi de 340%. Quer tentar?',
+      platform: 'threads', type: 'Post', hookType: 'Desafio',
+      tags: ['desafio', 'estratégia', '30 dias', 'crescimento'],
+    },
+    {
+      title: 'A psicologia por trás dos vídeos mais virais',
+      summary: 'Neurocientista explica os 5 gatilhos psicológicos presentes em todos os vídeos com mais de 10M de views.',
+      idea: '5 gatilhos: gap de curiosidade (2s), pattern interrupt (3-5s), tensão crescente, payoff emocional, loop aberto no final.',
+      transcription: 'Eu sou neurocientista e analisei os 100 vídeos mais virais do último mês. TODOS tinham esses 5 elementos em comum. E quando você entende a ciência por trás, tudo muda...',
+      platform: 'youtube', type: 'Video', hookType: 'Curiosidade',
+      tags: ['psicologia', 'viral', 'neurociência', 'gatilhos'],
+    },
+  ];
+
+  return items.map((item, i) => {
+    const creator = creators[i % creators.length];
+    const views = rand(100000, 10000000);
+    const likes = rand(10000, 500000);
+    const comments = rand(1000, 50000);
+    const shares = rand(5000, 200000);
+    const saves = rand(2000, 100000);
+    return {
+      id: 'v' + i,
+      ...item,
+      author: creator,
+      thumbnail: `https://picsum.photos/seed/punk${i + Date.now() % 100}/800/450`,
+      metrics: { views, likes, comments, shares, saves, velocity: (Math.random() * 23 + 2).toFixed(1) },
+      trendScore: rand(70, 99),
+      hookPunch: {
+        hook: item.transcription.substring(0, 120),
+        punchLine: 'E isso muda tudo sobre como você cria conteúdo.',
+        cta: item.hookType === 'Pergunta' ? 'Comenta sua opinião' : 'Salva pra aplicar depois',
+        trigger: item.hookType,
+        template: `[HOOK]: ${item.transcription.substring(0, 80)}...\n[DESENVOLVIMENTO]: Adapte para seu nicho\n[CTA]: ${item.hookType === 'Pergunta' ? 'Comenta sua opinião' : 'Salva pra aplicar depois'}`,
+      },
+      discoveredAt: new Date(Date.now() - rand(0, 86400000)),
+    };
+  });
+}
+
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function fmt(n) { return n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : n; }
+function platformIcon(p) { return { tiktok:'🎵', instagram:'📸', youtube:'📺', twitter:'💬', threads:'🧵' }[p] || '🌐'; }
+
+// ═══ RENDER ═══
+
+function renderFilters() {
+  const bar = document.getElementById('filterBar');
+  bar.innerHTML = PLATFORMS.map(p =>
+    `<button class="filter-chip ${p.id === currentPlatform ? 'active' : ''}" onclick="filterPlatform('${p.id}')">${p.icon} ${p.name}</button>`
+  ).join('');
+}
+
+function renderProfiles() {
+  const seen = new Set();
+  const profiles = allContent.map(c => c.author).filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
+  document.getElementById('profilesScroll').innerHTML = profiles.map(p => `
+    <div class="profile-card">
+      <div class="profile-avatar"><img src="${p.avatar}" alt="${p.name}" onerror="this.style.display='none'"></div>
+      <div class="profile-name">${p.name} ${p.verified ? '<span class="verified">✓</span>' : ''}</div>
+      <div class="profile-handle">${p.username}</div>
+      <div class="profile-followers">👥 ${fmt(p.followers)}</div>
+      <div class="profile-niche">${p.niche}</div>
+    </div>
+  `).join('');
+}
+
+function renderFeed(items) {
+  const target = document.getElementById('feed');
+  document.getElementById('contentCount').textContent = items.length + ' conteúdos';
+  target.innerHTML = items.map(c => `
+    <div class="card" onclick="openDetail('${c.id}')">
+      <div class="card-thumb">
+        <img src="${c.thumbnail}" alt="${c.title}" loading="lazy" onerror="this.parentElement.style.background='linear-gradient(135deg,#7c3aed,#ec4899)'">
+        <div class="card-thumb-overlay"></div>
+        <div class="card-badge">${platformIcon(c.platform)} ${c.platform}</div>
+        <div class="card-score">🔥 <strong>${c.trendScore}</strong></div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${c.title}</div>
+        <div class="card-summary">${c.summary}</div>
+        <div class="card-author">
+          <img src="${c.author.avatar}" alt="" onerror="this.style.background='var(--bg4)'">
+          <span class="card-author-name">${c.author.name} ${c.author.verified ? '<span class="verified">✓</span>' : ''}</span>
+          <span class="card-hook-type">${c.hookPunch.trigger}</span>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">👁 ${fmt(c.metrics.views)}</span>
+          <span class="card-metric">❤️ ${fmt(c.metrics.likes)}</span>
+          <span class="card-metric">💬 ${fmt(c.metrics.comments)}</span>
+          <span class="card-metric">↗️ ${fmt(c.metrics.shares)}</span>
+          <span class="card-metric" style="margin-left:auto">⚡${c.metrics.velocity}/h</span>
+        </div>
+        <div class="card-tags">${c.tags.map(t => `<span class="card-tag">#${t}</span>`).join('')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderDiscover() {
+  document.getElementById('topHooks').innerHTML = allContent.slice(0, 5).map(c => `
+    <div class="hook-preview" onclick="openDetail('${c.id}')">
+      <div class="hook-preview-bar"></div>
+      <div style="flex:1;min-width:0">
+        <div class="hook-preview-top">
+          <span class="hook-preview-type">${c.hookPunch.trigger}</span>
+          <span style="font-size:10px;color:var(--text3)">${platformIcon(c.platform)}</span>
+          <span style="margin-left:auto;font-size:10px">🔥 ${c.trendScore}</span>
+        </div>
+        <div class="hook-preview-text">${c.hookPunch.hook}</div>
+        <div class="hook-preview-author">por ${c.author.name}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('ideasGrid').innerHTML = allContent.slice(4).map(c => `
+    <div class="idea-card" onclick="openDetail('${c.id}')">
+      <div class="idea-card-icon">${platformIcon(c.platform)}</div>
+      <div class="idea-card-title">${c.title}</div>
+      <div class="idea-card-desc">${c.idea}</div>
+      <div class="idea-card-views">${fmt(c.metrics.views)} views</div>
+    </div>
+  `).join('');
+}
+
+function renderSettings() {
+  document.getElementById('platformSettings').innerHTML = PLATFORMS.filter(p => p.id !== 'all').map(p => `
+    <div class="settings-row">
+      <label>${p.icon} ${p.name}</label>
+      <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>
+  `).join('');
+}
+
+// ═══ DETAIL MODAL ═══
+
+function openDetail(id) {
+  const c = allContent.find(x => x.id === id);
+  if (!c) return;
+  const isSaved = savedContent.some(s => s.id === id);
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-hero">
+      <img src="${c.thumbnail}" alt="${c.title}" onerror="this.parentElement.style.background='linear-gradient(135deg,#7c3aed,#ec4899)'">
+      <div class="modal-hero-overlay"></div>
+      <div class="modal-hero-info">
+        <div class="modal-hero-badges">
+          <span class="modal-hero-badge">${platformIcon(c.platform)} ${c.platform}</span>
+          <span class="modal-hero-badge">${c.type}</span>
+          <span class="modal-hero-badge" style="margin-left:auto;color:#f59e0b;font-weight:800">🔥 ${c.trendScore}</span>
+        </div>
+        <div class="modal-hero-title">${c.title}</div>
+      </div>
+    </div>
+
+    <div class="modal-content">
+      <div style="display:flex;gap:8px;margin:12px 0">
+        <button onclick="saveContent('${c.id}')" style="flex:1;padding:10px;border:none;border-radius:10px;background:${isSaved ? 'rgba(124,58,237,0.2)' : 'var(--bg3)'};color:${isSaved ? 'var(--purple)' : 'var(--text)'};font-size:13px;font-weight:600;cursor:pointer">
+          ${isSaved ? '✅ Salvo' : '🔖 Salvar'}
+        </button>
+        <button onclick="window.open('${c.originalURL || '#'}')" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--bg3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer">
+          🔗 Ver original
+        </button>
+      </div>
+
+      <div class="modal-author">
+        <img src="${c.author.avatar}" alt="" onerror="this.style.background='var(--bg4)'">
+        <div class="modal-author-info">
+          <div class="modal-author-name">${c.author.name} ${c.author.verified ? '<span class="verified">✓</span>' : ''}</div>
+          <div class="modal-author-sub">${c.author.username} · ${fmt(c.author.followers)} seguidores</div>
+        </div>
+        <div class="modal-author-eng">
+          <small>Engajamento</small>
+          <strong>${c.author.engagement}%</strong>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-box"><div class="icon">👁</div><div class="value">${fmt(c.metrics.views)}</div><div class="label">Views</div></div>
+        <div class="metric-box"><div class="icon">❤️</div><div class="value">${fmt(c.metrics.likes)}</div><div class="label">Likes</div></div>
+        <div class="metric-box"><div class="icon">💬</div><div class="value">${fmt(c.metrics.comments)}</div><div class="label">Comentários</div></div>
+        <div class="metric-box"><div class="icon">↗️</div><div class="value">${fmt(c.metrics.shares)}</div><div class="label">Shares</div></div>
+        <div class="metric-box"><div class="icon">🔖</div><div class="value">${fmt(c.metrics.saves)}</div><div class="label">Saves</div></div>
+        <div class="metric-box"><div class="icon">⚡</div><div class="value">${c.metrics.velocity}/h</div><div class="label">Velocidade</div></div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchDetailTab(0, this)">📄 Resumo</button>
+        <button class="tab" onclick="switchDetailTab(1, this)">💡 Ideia</button>
+        <button class="tab" onclick="switchDetailTab(2, this)">🎤 Transcrição</button>
+        <button class="tab" onclick="switchDetailTab(3, this)">⚡ Hook</button>
+      </div>
+
+      <div class="tab-content active" data-tab="0">
+        <h3>📄 Resumo</h3>
+        <p>${c.summary}</p>
+      </div>
+      <div class="tab-content" data-tab="1">
+        <h3>💡 Ideia Central</h3>
+        <p>${c.idea}</p>
+      </div>
+      <div class="tab-content" data-tab="2">
+        <h3>🎤 Transcrição</h3>
+        <p style="font-style:italic">${c.transcription}</p>
+        <button onclick="copyText(\`${c.transcription.replace(/`/g, "'")}\`)" style="margin-top:12px;padding:8px 16px;border:none;border-radius:8px;background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer">📋 Copiar transcrição</button>
+      </div>
+      <div class="tab-content" data-tab="3">
+        <h3>⚡ Hook Punch Analysis</h3>
+        <div class="hook-section hook-curiosidade"><div class="label">Hook</div><p>${c.hookPunch.hook}</p></div>
+        <div class="hook-section hook-punch"><div class="label">Punch Line</div><p>${c.hookPunch.punchLine}</p></div>
+        <div class="hook-section hook-cta"><div class="label">CTA</div><p>${c.hookPunch.cta}</p></div>
+        <div class="hook-section hook-trigger"><div class="label">Gatilho Emocional</div><p>${c.hookPunch.trigger}</p></div>
+      </div>
+
+      <button class="clone-btn" onclick="openCloneSheet('${c.id}')">📋 Clonar com Hook Punch</button>
+    </div>
+  `;
+
+  document.getElementById('modalOverlay').classList.add('active');
+  document.getElementById('modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  document.getElementById('modal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function switchDetailTab(idx, btn) {
+  const modal = document.getElementById('modalBody');
+  modal.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  modal.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  modal.querySelectorAll('.tab-content')[idx]?.classList.add('active');
+}
+
+// ═══ CLONE SHEET ═══
+
+function openCloneSheet(id) {
+  const c = allContent.find(x => x.id === id);
+  if (!c) return;
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="clone-sheet">
+      <div style="text-align:center;font-size:40px;margin-bottom:8px">📋</div>
+      <h2>Clonar com Hook Punch</h2>
+      <p class="subtitle">Adapte esse conteúdo viral para o seu nicho</p>
+
+      <div class="clone-field">
+        <label>Hook Original</label>
+        <div style="padding:12px;border-radius:10px;background:var(--bg3);font-size:13px;color:var(--text2)">${c.hookPunch.hook}</div>
+      </div>
+
+      <div class="clone-field">
+        <label>Tipo de Hook</label>
+        <div class="hook-types" id="hookTypes">
+          ${HOOK_TYPES.map(h => `<button class="hook-type-chip ${h === c.hookPunch.trigger ? 'active' : ''}" onclick="selectHookType(this)">${h}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="clone-field">
+        <label>Seu Nicho</label>
+        <input type="text" id="cloneNiche" placeholder="Ex: fitness, finanças, tech...">
+      </div>
+
+      <div class="clone-field">
+        <label>Personalizar Hook (opcional)</label>
+        <textarea id="cloneCustomHook" rows="3" placeholder="Reescreva o hook do seu jeito..."></textarea>
+      </div>
+
+      <button class="generate-btn" onclick="generateClone('${c.id}')">✨ Gerar Clone</button>
+
+      <div class="clone-result" id="cloneResult"></div>
+      <div class="clone-actions" id="cloneActions" style="display:none">
+        <button class="btn-copy" onclick="copyClone()">📋 Copiar</button>
+        <button class="btn-share" onclick="shareClone()">↗️ Compartilhar</button>
+      </div>
+
+      <button style="width:100%;padding:12px;border:1px solid var(--bg4);border-radius:10px;background:none;color:var(--text2);font-size:13px;cursor:pointer;margin-top:12px" onclick="openDetail('${c.id}')">← Voltar ao conteúdo</button>
+    </div>
+  `;
+}
+
+function selectHookType(btn) {
+  document.querySelectorAll('#hookTypes .hook-type-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function generateClone(id) {
+  const c = allContent.find(x => x.id === id);
+  if (!c) return;
+  const niche = document.getElementById('cloneNiche').value || 'seu nicho';
+  const customHook = document.getElementById('cloneCustomHook').value;
+  const hookType = document.querySelector('#hookTypes .active')?.textContent || c.hookPunch.trigger;
+  const hook = customHook || c.hookPunch.hook;
+
+  const result = `🎯 HOOK (${hookType}):\n[${niche.toUpperCase()}] ${hook}\n\n📝 ROTEIRO:\n${c.hookPunch.template.replace('Adapte para seu nicho', 'Aplique para ' + niche)}\n\n💡 IDEIA ADAPTADA:\n${c.idea}\n\n⚡ PUNCH LINE:\n${c.hookPunch.punchLine}\n\n📣 CTA:\n${c.hookPunch.cta}\n\n#${niche.replace(/\s+/g, '')} #viral #punkio`;
+
+  const el = document.getElementById('cloneResult');
+  el.textContent = result;
+  el.classList.add('active');
+  document.getElementById('cloneActions').style.display = 'flex';
+}
+
+function copyClone() {
+  const text = document.getElementById('cloneResult').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => btn.textContent = '📋 Copiar', 2000);
+  });
+}
+
+function shareClone() {
+  const text = document.getElementById('cloneResult').textContent;
+  if (navigator.share) {
+    navigator.share({ title: 'Punk.io Clone', text });
+  } else {
+    copyClone();
+  }
+}
+
+// ═══ ACTIONS ═══
+
+function saveContent(id) {
+  const idx = savedContent.findIndex(s => s.id === id);
+  if (idx >= 0) {
+    savedContent.splice(idx, 1);
+  } else {
+    const c = allContent.find(x => x.id === id);
+    if (c) savedContent.push(c);
+  }
+  localStorage.setItem('punkio_saved', JSON.stringify(savedContent.map(s => s.id)));
+  renderSaved();
+  openDetail(id); // refresh
+}
+
+function renderSaved() {
+  const empty = document.getElementById('savedEmpty');
+  const feed = document.getElementById('savedFeed');
+  if (savedContent.length === 0) {
+    empty.style.display = 'block';
+    feed.innerHTML = '';
+  } else {
+    empty.style.display = 'none';
+    feed.innerHTML = savedContent.map(c => `
+      <div class="card" onclick="openDetail('${c.id}')">
+        <div class="card-thumb">
+          <img src="${c.thumbnail}" alt="${c.title}" loading="lazy">
+          <div class="card-thumb-overlay"></div>
+          <div class="card-badge">${platformIcon(c.platform)} ${c.platform}</div>
+        </div>
+        <div class="card-body">
+          <div class="card-title">${c.title}</div>
+          <div class="card-author">
+            <img src="${c.author.avatar}" alt="">
+            <span class="card-author-name">${c.author.name}</span>
+            <span class="card-hook-type">${c.hookPunch.trigger}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => alert('Copiado!'));
+}
+
+// ═══ NAVIGATION ═══
+
+function switchTab(idx) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tabbar-item').forEach(t => t.classList.remove('active'));
+  ['screenFeed','screenDiscover','screenSaved','screenSettings'][idx] && document.getElementById(['screenFeed','screenDiscover','screenSaved','screenSettings'][idx]).classList.add('active');
+  document.querySelectorAll('.tabbar-item')[idx]?.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function filterPlatform(id) {
+  currentPlatform = id;
+  renderFilters();
+  filteredContent = id === 'all' ? allContent : allContent.filter(c => c.platform === id);
+  renderFeed(filteredContent);
+}
+
+function toggleSearch() {
+  document.getElementById('searchBar').classList.toggle('active');
+  const input = document.querySelector('#searchBar input');
+  if (document.getElementById('searchBar').classList.contains('active')) input.focus();
+}
+
+function handleSearch(q) {
+  if (!q) { filterPlatform(currentPlatform); return; }
+  q = q.toLowerCase();
+  const results = allContent.filter(c =>
+    c.title.toLowerCase().includes(q) ||
+    c.summary.toLowerCase().includes(q) ||
+    c.tags.some(t => t.toLowerCase().includes(q)) ||
+    c.author.username.toLowerCase().includes(q) ||
+    c.author.name.toLowerCase().includes(q)
+  );
+  renderFeed(results);
+}
+
+async function refreshFeed() {
+  document.getElementById('feedLoading').style.display = 'block';
+  document.getElementById('feed').innerHTML = '';
+
+  await new Promise(r => setTimeout(r, 600));
+
+  allContent = generateContent();
+  filteredContent = allContent;
+
+  // Restore saved
+  const savedIds = JSON.parse(localStorage.getItem('punkio_saved') || '[]');
+  savedContent = allContent.filter(c => savedIds.includes(c.id));
+
+  renderFilters();
+  renderProfiles();
+  renderFeed(allContent);
+  renderDiscover();
+  renderSaved();
+  renderSettings();
+
+  document.getElementById('feedLoading').style.display = 'none';
+  document.getElementById('lastUpdate').textContent = 'Atualizado: Agora';
+}
+
+// ═══ INIT ═══
+
+async function init() {
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // Show install banner on iOS Safari
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (isIOS && !isStandalone) {
+    document.getElementById('installBanner').classList.add('show');
+  }
+
+  await refreshFeed();
+
+  // Auto-refresh every 60s
+  refreshTimer = setInterval(() => {
+    allContent = generateContent();
+    filteredContent = currentPlatform === 'all' ? allContent : allContent.filter(c => c.platform === currentPlatform);
+    renderFeed(filteredContent);
+    renderProfiles();
+    renderDiscover();
+    document.getElementById('lastUpdate').textContent = 'Atualizado: Agora';
+  }, 60000);
+}
+
+// Handle back gesture / swipe to close modal
+document.getElementById('modal').addEventListener('touchstart', function(e) {
+  this._startY = e.touches[0].clientY;
+}, { passive: true });
+
+document.getElementById('modal').addEventListener('touchmove', function(e) {
+  const dy = e.touches[0].clientY - this._startY;
+  if (dy > 100) closeModal();
+}, { passive: true });
+
+init();
+</script>
+
+</body>
+</html>

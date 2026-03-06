@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="c" width="512" height="512"></canvas>
+<script>
+// Generate and save the icon
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+// Background gradient
+const g = ctx.createLinearGradient(0, 0, 512, 512);
+g.addColorStop(0, '#7c3aed');
+g.addColorStop(1, '#ec4899');
+ctx.fillStyle = g;
+
+// Rounded rect
+ctx.beginPath();
+ctx.roundRect(0, 0, 512, 512, 100);
+ctx.fill();
+
+// Bolt icon
+ctx.fillStyle = '#fff';
+ctx.font = 'bold 260px -apple-system, sans-serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('P', 256, 240);
+
+// Subtitle
+ctx.font = 'bold 60px -apple-system, sans-serif';
+ctx.fillText('.io', 350, 370);
+
+// Download links
+const link192 = document.createElement('a');
+const c2 = document.createElement('canvas');
+c2.width = 192; c2.height = 192;
+c2.getContext('2d').drawImage(c, 0, 0, 192, 192);
+document.body.innerHTML += '<p>Right-click to save:</p>';
+document.body.innerHTML += `<p><a href="${c.toDataURL()}" download="icon-512.png">icon-512.png</a></p>`;
+document.body.innerHTML += `<p><a href="${c2.toDataURL()}" download="icon-192.png">icon-192.png</a></p>`;
+</script>
+</body>
+</html>
