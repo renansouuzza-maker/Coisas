@@ -575,26 +575,31 @@ let refreshTimer = null;
 
 // ═══ DATA ═══
 
+function igAvatar(username) {
+  // Use backend proxy to fetch real Instagram profile photo
+  return '/api/ig/pic/' + username.replace('@', '');
+}
+
 function generateContent() {
   const creators = [
-    { id: 'c1', username: '@virginia', name: 'Virginia Fonseca', avatar: 'https://i.pravatar.cc/150?u=virginia1', platform: 'instagram', followers: 51600000, engagement: 4.8, bio: 'Mae, empresaria, CEO We Pink', verified: true, niche: 'Maternidade' },
-    { id: 'c2', username: '@marimariamakeup', name: 'Mari Maria', avatar: 'https://i.pravatar.cc/150?u=marimaria2', platform: 'instagram', followers: 21200000, engagement: 6.2, bio: 'Maquiadora & Empresaria - Mari Maria Makeup', verified: true, niche: 'Maquiagem' },
-    { id: 'c3', username: '@bianca', name: 'Bianca Andrade', avatar: 'https://i.pravatar.cc/150?u=bocaa3', platform: 'instagram', followers: 19000000, engagement: 7.1, bio: 'Boca Rosa - CEO Boca Rosa Beauty', verified: true, niche: 'Beleza' },
-    { id: 'c4', username: '@francinyehlke', name: 'Franciny Ehlke', avatar: 'https://i.pravatar.cc/150?u=fran4', platform: 'instagram', followers: 19000000, engagement: 5.9, bio: 'Maquiagem & Fran by Franciny Ehlke', verified: true, niche: 'Maquiagem' },
-    { id: 'c5', username: '@brunatavares', name: 'Bruna Tavares', avatar: 'https://i.pravatar.cc/150?u=bruna5', platform: 'instagram', followers: 4000000, engagement: 8.3, bio: 'Maquiadora | CEO BT Bruna Tavares | Forbes 15 Mulheres', verified: true, niche: 'Maquiagem' },
-    { id: 'c6', username: '@rayzanicacio', name: 'Rayza Nicacio', avatar: 'https://i.pravatar.cc/150?u=rayza6', platform: 'instagram', followers: 1500000, engagement: 9.7, bio: 'Cabelo cacheado, autoestima e lifestyle', verified: true, niche: 'Cabelo' },
-    { id: 'c7', username: '@paborges', name: 'Pabllo Vittar', avatar: 'https://i.pravatar.cc/150?u=pabllo7', platform: 'instagram', followers: 15000000, engagement: 11.2, bio: 'Artista, drag queen, beleza LGBTQ+', verified: true, niche: 'LGBTQ+ Beauty' },
-    { id: 'c8', username: '@gloriagroove', name: 'Gloria Groove', avatar: 'https://i.pravatar.cc/150?u=gloria8', platform: 'tiktok', followers: 12000000, engagement: 13.8, bio: 'Drag, artista, beleza sem limites', verified: true, niche: 'LGBTQ+ Beauty' },
-    { id: 'c9', username: '@jadepicon', name: 'Jade Picon', avatar: 'https://i.pravatar.cc/150?u=jade9', platform: 'instagram', followers: 22000000, engagement: 5.4, bio: 'Beleza, moda e skincare', verified: true, niche: 'Skincare' },
-    { id: 'c10', username: '@tata', name: 'Tata Estaniecki', avatar: 'https://i.pravatar.cc/150?u=tata13', platform: 'instagram', followers: 12000000, engagement: 7.5, bio: 'Maternidade, PodDelas, empreendedora', verified: true, niche: 'Maternidade' },
-    { id: 'c11', username: '@viihtube', name: 'Viih Tube', avatar: 'https://i.pravatar.cc/150?u=viih16', platform: 'instagram', followers: 33000000, engagement: 4.9, bio: 'Mae, ex-BBB, criadora de conteudo', verified: true, niche: 'Maternidade' },
-    { id: 'c12', username: '@juliette', name: 'Juliette Freire', avatar: 'https://i.pravatar.cc/150?u=juliette15', platform: 'instagram', followers: 29000000, engagement: 5.6, bio: 'Maquiadora, cantora, beleza nordestina', verified: true, niche: 'Maquiagem' },
-    { id: 'c13', username: '@niinasecrets', name: 'Niina Secrets', avatar: 'https://i.pravatar.cc/150?u=niina17', platform: 'instagram', followers: 4000000, engagement: 6.8, bio: 'Maquiagem, reviews, collab Eudora', verified: true, niche: 'Maquiagem' },
-    { id: 'c14', username: '@diucke', name: 'Diucke', avatar: 'https://i.pravatar.cc/150?u=diucke14', platform: 'tiktok', followers: 1100000, engagement: 18.5, bio: 'Beauty reviewer LGBTQ+, reviews honestos', verified: true, niche: 'LGBTQ+ Maquiagem' },
-    { id: 'c15', username: '@jardeledebran', name: 'Jardel Edebran', avatar: 'https://i.pravatar.cc/150?u=jardel15', platform: 'tiktok', followers: 866000, engagement: 14.2, bio: 'Skincare, CEO Popo Skinbakery', verified: true, niche: 'Skincare' },
-    { id: 'c16', username: '@naiumigoldoni', name: 'Naiumi Goldoni', avatar: 'https://i.pravatar.cc/150?u=naiumi16', platform: 'tiktok', followers: 2900000, engagement: 12.1, bio: 'Maternidade Real, atriz', verified: true, niche: 'Maternidade' },
-    { id: 'c17', username: '@karenbachini', name: 'Karen Bachini', avatar: 'https://i.pravatar.cc/150?u=karen17', platform: 'tiktok', followers: 1600000, engagement: 10.5, bio: '18+ anos testando produtos de beleza', verified: true, niche: 'Maquiagem' },
-    { id: 'c18', username: '@linndaquebrada', name: 'Linn da Quebrada', avatar: 'https://i.pravatar.cc/150?u=linn18', platform: 'instagram', followers: 2000000, engagement: 9.8, bio: 'Artista trans, beleza & ativismo LGBTQ+', verified: true, niche: 'LGBTQ+ Beauty' },
+    { id: 'c1', username: '@virginia', ig: 'virginia', name: 'Virginia Fonseca', avatar: igAvatar('virginia'), platform: 'instagram', followers: 51600000, engagement: 4.8, bio: 'Mae, empresaria, CEO We Pink', verified: true, niche: 'Maternidade' },
+    { id: 'c2', username: '@marimariamakeup', ig: 'marimariamakeup', name: 'Mari Maria', avatar: igAvatar('marimariamakeup'), platform: 'instagram', followers: 21200000, engagement: 6.2, bio: 'Maquiadora & Empresaria - Mari Maria Makeup', verified: true, niche: 'Maquiagem' },
+    { id: 'c3', username: '@biaborges', ig: 'biaborges', name: 'Bianca Andrade', avatar: igAvatar('biaborges'), platform: 'instagram', followers: 19000000, engagement: 7.1, bio: 'Boca Rosa - CEO Boca Rosa Beauty', verified: true, niche: 'Beleza' },
+    { id: 'c4', username: '@francinyehlke', ig: 'francinyehlke', name: 'Franciny Ehlke', avatar: igAvatar('francinyehlke'), platform: 'instagram', followers: 19000000, engagement: 5.9, bio: 'Maquiagem & Fran by Franciny Ehlke', verified: true, niche: 'Maquiagem' },
+    { id: 'c5', username: '@brunatavares', ig: 'brunatavares', name: 'Bruna Tavares', avatar: igAvatar('brunatavares'), platform: 'instagram', followers: 4000000, engagement: 8.3, bio: 'Maquiadora | CEO BT Bruna Tavares | Forbes 15 Mulheres', verified: true, niche: 'Maquiagem' },
+    { id: 'c6', username: '@rayzanicacio', ig: 'rayzanicacio', name: 'Rayza Nicacio', avatar: igAvatar('rayzanicacio'), platform: 'instagram', followers: 1500000, engagement: 9.7, bio: 'Cabelo cacheado, autoestima e lifestyle', verified: true, niche: 'Cabelo' },
+    { id: 'c7', username: '@paborges', ig: 'paborges', name: 'Pabllo Vittar', avatar: igAvatar('paborges'), platform: 'instagram', followers: 15000000, engagement: 11.2, bio: 'Artista, drag queen, beleza LGBTQ+', verified: true, niche: 'LGBTQ+ Beauty' },
+    { id: 'c8', username: '@gloriagroove', ig: 'gloriagroove', name: 'Gloria Groove', avatar: igAvatar('gloriagroove'), platform: 'tiktok', followers: 12000000, engagement: 13.8, bio: 'Drag, artista, beleza sem limites', verified: true, niche: 'LGBTQ+ Beauty' },
+    { id: 'c9', username: '@jadepicon', ig: 'jadepicon', name: 'Jade Picon', avatar: igAvatar('jadepicon'), platform: 'instagram', followers: 22000000, engagement: 5.4, bio: 'Beleza, moda e skincare', verified: true, niche: 'Skincare' },
+    { id: 'c10', username: '@taborges', ig: 'taborges', name: 'Tata Estaniecki', avatar: igAvatar('taborges'), platform: 'instagram', followers: 12000000, engagement: 7.5, bio: 'Maternidade, PodDelas, empreendedora', verified: true, niche: 'Maternidade' },
+    { id: 'c11', username: '@viihtube', ig: 'viihtube', name: 'Viih Tube', avatar: igAvatar('viihtube'), platform: 'instagram', followers: 33000000, engagement: 4.9, bio: 'Mae, ex-BBB, criadora de conteudo', verified: true, niche: 'Maternidade' },
+    { id: 'c12', username: '@juliette', ig: 'juliette', name: 'Juliette Freire', avatar: igAvatar('juliette'), platform: 'instagram', followers: 29000000, engagement: 5.6, bio: 'Maquiadora, cantora, beleza nordestina', verified: true, niche: 'Maquiagem' },
+    { id: 'c13', username: '@niinasecrets', ig: 'niinasecrets', name: 'Niina Secrets', avatar: igAvatar('niinasecrets'), platform: 'instagram', followers: 4000000, engagement: 6.8, bio: 'Maquiagem, reviews, collab Eudora', verified: true, niche: 'Maquiagem' },
+    { id: 'c14', username: '@diucke', ig: 'diucke', name: 'Diucke', avatar: igAvatar('diucke'), platform: 'tiktok', followers: 1100000, engagement: 18.5, bio: 'Beauty reviewer LGBTQ+, reviews honestos', verified: true, niche: 'LGBTQ+ Maquiagem' },
+    { id: 'c15', username: '@jardeledebran', ig: 'jardeledebran', name: 'Jardel Edebran', avatar: igAvatar('jardeledebran'), platform: 'tiktok', followers: 866000, engagement: 14.2, bio: 'Skincare, CEO Popo Skinbakery', verified: true, niche: 'Skincare' },
+    { id: 'c16', username: '@naiumigoldoni', ig: 'naiumigoldoni', name: 'Naiumi Goldoni', avatar: igAvatar('naiumigoldoni'), platform: 'tiktok', followers: 2900000, engagement: 12.1, bio: 'Maternidade Real, atriz', verified: true, niche: 'Maternidade' },
+    { id: 'c17', username: '@karenbachini', ig: 'karenbachini', name: 'Karen Bachini', avatar: igAvatar('karenbachini'), platform: 'tiktok', followers: 1600000, engagement: 10.5, bio: '18+ anos testando produtos de beleza', verified: true, niche: 'Maquiagem' },
+    { id: 'c18', username: '@linndaquebrada', ig: 'linfreitasda', name: 'Linn da Quebrada', avatar: igAvatar('linfreitasda'), platform: 'instagram', followers: 2000000, engagement: 9.8, bio: 'Artista trans, beleza & ativismo LGBTQ+', verified: true, niche: 'LGBTQ+ Beauty' },
   ];
 
   const items = [
@@ -724,7 +729,7 @@ function renderProfiles() {
   const profiles = allContent.map(c => c.author).filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
   document.getElementById('profilesScroll').innerHTML = profiles.map(p => `
     <div class="profile-card">
-      <div class="profile-avatar"><img src="${p.avatar}" alt="${p.name}" onerror="this.style.display='none'"></div>
+      <div class="profile-avatar"><img src="${p.avatar}" alt="${p.name}" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=7c3aed&color=fff&size=150'"></div>
       <div class="profile-name">${p.name} ${p.verified ? '<span class="verified">✓</span>' : ''}</div>
       <div class="profile-handle">${p.username}</div>
       <div class="profile-followers">👥 ${fmt(p.followers)}</div>
@@ -748,7 +753,7 @@ function renderFeed(items) {
         <div class="card-title">${c.title}</div>
         <div class="card-summary">${c.summary}</div>
         <div class="card-author">
-          <img src="${c.author.avatar}" alt="" onerror="this.style.background='var(--bg4)'">
+          <img src="${c.author.avatar}" alt="" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name='+encodeURIComponent(this.alt||'U')+'&background=7c3aed&color=fff&size=150'">
           <span class="card-author-name">${c.author.name} ${c.author.verified ? '<span class="verified">✓</span>' : ''}</span>
           <span class="card-hook-type">${c.hookPunch.trigger}</span>
         </div>
@@ -832,7 +837,7 @@ function openDetail(id) {
       </div>
 
       <div class="modal-author">
-        <img src="${c.author.avatar}" alt="" onerror="this.style.background='var(--bg4)'">
+        <img src="${c.author.avatar}" alt="" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name='+encodeURIComponent(this.alt||'U')+'&background=7c3aed&color=fff&size=150'">
         <div class="modal-author-info">
           <div class="modal-author-name">${c.author.name} ${c.author.verified ? '<span class="verified">✓</span>' : ''}</div>
           <div class="modal-author-sub">${c.author.username} · ${fmt(c.author.followers)} seguidores</div>
@@ -1184,7 +1189,7 @@ async function loadMyProfiles() {
   container.innerHTML = profiles.map(p => `
     <div class="settings-row">
       <label style="gap:10px">
-        <img src="${p.avatarURL || 'https://i.pravatar.cc/150?u=' + p.username}" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--purple)">
+        <img src="${p.avatarURL || igAvatar(p.username)}" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--purple)" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.displayName || p.username)}&background=7c3aed&color=fff&size=150'">
         <div>
           <div style="font-size:13px;font-weight:700">${p.displayName || p.username} ${p.isVerified ? '<span style="color:var(--blue)">✓</span>' : ''}</div>
           <div style="font-size:11px;color:var(--text3)">${p.username} · ${fmt(p.followers || 0)} · ${p.niche || 'Beleza'}</div>

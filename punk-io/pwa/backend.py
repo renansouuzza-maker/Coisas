@@ -22,6 +22,15 @@ _cache = {}
 _cache_ttl = {}
 CACHE_DURATION = 300
 
+# Cache for Instagram profile pictures
+_ig_pic_cache = {}
+
+IG_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+}
+
 # Perfis adicionados pelo usuário (persiste em arquivo)
 PROFILES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profiles.json")
 
@@ -234,6 +243,49 @@ def extract_username(text):
 # HTTP HANDLER
 # ═══════════════════════════════════════
 
+def fetch_ig_profile_pic(username):
+    """Fetch Instagram profile picture URL by scraping the public profile page."""
+    username = username.lstrip('@').strip().lower()
+    if username in _ig_pic_cache:
+        return _ig_pic_cache[username]
+
+    url = f'https://www.instagram.com/{username}/'
+    req = urllib.request.Request(url, headers=IG_HEADERS)
+    try:
+        with urllib.request.urlopen(req, timeout=10, context=ssl_ctx) as resp:
+            html = resp.read().decode('utf-8', errors='replace')
+        # Try og:image meta tag
+        match = re.search(r'<meta\s+property="og:image"\s+content="([^"]+)"', html)
+        if not match:
+            match = re.search(r'<meta\s+content="([^"]+)"\s+property="og:image"', html)
+        if match:
+            pic_url = match.group(1).replace('&amp;', '&')
+            _ig_pic_cache[username] = pic_url
+            return pic_url
+        # Try JSON data
+        match = re.search(r'"profile_pic_url_hd"\s*:\s*"([^"]+)"', html)
+        if not match:
+            match = re.search(r'"profile_pic_url"\s*:\s*"([^"]+)"', html)
+        if match:
+            pic_url = match.group(1).replace('\\u0026', '&')
+            _ig_pic_cache[username] = pic_url
+            return pic_url
+    except Exception as e:
+        print(f'  [IG] Error fetching @{username}: {e}')
+    return None
+
+
+def proxy_image(image_url):
+    """Fetch an image and return (bytes, content_type)."""
+    req = urllib.request.Request(image_url, headers=IG_HEADERS)
+    try:
+        with urllib.request.urlopen(req, timeout=10, context=ssl_ctx) as resp:
+            return resp.read(), resp.headers.get('Content-Type', 'image/jpeg')
+    except Exception as e:
+        print(f'  [PROXY] Error: {e}')
+        return None, None
+
+
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         p = urllib.parse.urlparse(self.path)
@@ -247,6 +299,24 @@ class Handler(SimpleHTTPRequestHandler):
         elif p.path.startswith("/api/profile/"):
             user = p.path.split("/api/profile/")[1].strip("/")
             self._json(scrape_profile_metrics(user))
+
+        elif p.path.startswith("/api/ig/pic/"):
+            username = p.path.split("/api/ig/pic/")[1].strip("/")
+            pic_url = fetch_ig_profile_pic(username)
+            if pic_url:
+                data, ct = proxy_image(pic_url)
+                if data:
+                    self.send_response(200)
+                    self.send_header("Content-Type", ct)
+                    self.send_header("Cache-Control", "public, max-age=3600")
+                    self._cors()
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+            # Fallback to generated avatar
+            self.send_response(302)
+            self.send_header("Location", f"https://ui-avatars.com/api/?name={username}&background=7c3aed&color=fff&size=150")
+            self.end_headers()
 
         elif p.path == "/api/trending":
             q = urllib.parse.parse_qs(p.query)
@@ -368,19 +438,20 @@ if __name__ == "__main__":
 ╠══════════════════════════════════════════════════════╣
 ║                                                      ║
 ║  🌐 Local:  http://localhost:{PORT}                   ║
-║  📱 Rede:   http://{ip}:{PORT:<25s}    ║
+║  📱 Rede:   http://{ip}:{PORT}                      ║
 ║                                                      ║
-║  🤖 Gemini: {GEMINI_MODEL:<40s}║
+║  🤖 Gemini: {GEMINI_MODEL}                    ║
 ║  📊 Métricas: Not Just Analytics + AI                ║
 ║                                                      ║
 ║  📱 iPhone/iPad (mesmo Wi-Fi):                       ║
-║     Safari → http://{ip}:{PORT:<24s} ║
+║     Safari → http://{ip}:{PORT}                     ║
 ║     Compartilhar (↑) → Tela de Início                ║
 ║                                                      ║
 ║  🔌 APIs:                                            ║
 ║  GET  /api/status        — Status                    ║
 ║  GET  /api/profiles      — Perfis salvos             ║
 ║  GET  /api/profile/:user — Scrape perfil             ║
+║  GET  /api/ig/pic/:user  — Foto real do Instagram    ║
 ║  GET  /api/trending      — Conteúdo trending (AI)    ║
 ║  GET  /api/analyze       — Análise de conteúdo       ║
 ║  GET  /api/transcribe    — Transcrição completa      ║
