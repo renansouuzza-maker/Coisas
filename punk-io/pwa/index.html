@@ -483,8 +483,39 @@
     <div class="icon">⚡</div>
     <h2>Punk.io</h2>
     <p>Sistema de Ideias Infinitas</p>
-    <p style="margin-top:4px;font-size:11px">v1.0.0</p>
+    <p style="margin-top:4px;font-size:11px">v2.0.0 — Gemini AI</p>
   </div>
+
+  <div class="settings-section">
+    <h3>➕ Adicionar Perfil</h3>
+    <div class="settings-group">
+      <div style="padding:14px 16px">
+        <p style="font-size:12px;color:var(--text3);margin-bottom:10px">Cole o link do Instagram ou TikTok, ou o @username</p>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="addProfileInput" placeholder="@username ou link do Instagram..." style="flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--bg4);background:var(--bg3);color:var(--text);font-size:14px;outline:none">
+          <button onclick="addProfile()" style="padding:10px 16px;border:none;border-radius:10px;background:var(--gradient);color:#fff;font-weight:700;cursor:pointer;white-space:nowrap">Adicionar</button>
+        </div>
+        <div id="addProfileStatus" style="font-size:11px;margin-top:8px;color:var(--text3)"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <h3>👥 Meus Perfis Monitorados</h3>
+    <div class="settings-group" id="myProfiles">
+      <div class="settings-row" style="justify-content:center;color:var(--text3);font-size:13px">Carregando...</div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <h3>🤖 Gemini AI</h3>
+    <div class="settings-group">
+      <div class="settings-row"><label>🟢 Status</label><span id="aiStatus" style="font-size:12px;color:var(--green)">Conectado</span></div>
+      <div class="settings-row"><label>🧠 Modelo</label><span style="font-size:12px;color:var(--text3)">gemini-2.0-flash-lite</span></div>
+      <div class="settings-row"><label>📊 Métricas</label><span style="font-size:12px;color:var(--text3)">Not Just Analytics + AI</span></div>
+    </div>
+  </div>
+
   <div class="settings-section">
     <h3>Notificações</h3>
     <div class="settings-group">
@@ -492,6 +523,7 @@
       <div class="settings-row"><label>🔄 Atualização automática</label><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
     </div>
   </div>
+
   <div class="settings-section">
     <h3>Plataformas</h3>
     <div class="settings-group" id="platformSettings"></div>
@@ -834,7 +866,10 @@ function openDetail(id) {
       <div class="tab-content" data-tab="2">
         <h3>🎤 Transcrição</h3>
         <p style="font-style:italic">${c.transcription}</p>
-        <button onclick="copyText(\`${c.transcription.replace(/`/g, "'")}\`)" style="margin-top:12px;padding:8px 16px;border:none;border-radius:8px;background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer">📋 Copiar transcrição</button>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button onclick="copyText(\`${c.transcription.replace(/`/g, "'")}\`)" style="padding:8px 16px;border:none;border-radius:8px;background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer">📋 Copiar</button>
+          <button onclick="requestFullTranscription('${c.id}')" style="padding:8px 16px;border:none;border-radius:8px;background:var(--gradient);color:#fff;font-size:12px;font-weight:600;cursor:pointer">🤖 Gerar transcrição completa (IA)</button>
+        </div>
       </div>
       <div class="tab-content" data-tab="3">
         <h3>⚡ Hook Punch Analysis</h3>
@@ -1060,32 +1095,205 @@ async function refreshFeed() {
   document.getElementById('lastUpdate').textContent = 'Atualizado: Agora';
 }
 
+// ═══ API / GEMINI AI ═══
+
+const API_BASE = window.location.origin;
+let backendAvailable = false;
+
+async function apiGet(path) {
+  try {
+    const r = await fetch(API_BASE + path);
+    if (r.ok) return await r.json();
+  } catch(e) { console.log('[API] offline:', path); }
+  return null;
+}
+
+async function apiPost(path, data) {
+  try {
+    const r = await fetch(API_BASE + path, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (r.ok) return await r.json();
+  } catch(e) { console.log('[API] offline:', path); }
+  return null;
+}
+
+async function checkBackend() {
+  const status = await apiGet('/api/status');
+  backendAvailable = !!(status && status.status === 'ok');
+  const el = document.getElementById('aiStatus');
+  if (el) {
+    el.textContent = backendAvailable ? '✅ Conectado' : '❌ Offline (rode backend.py)';
+    el.style.color = backendAvailable ? 'var(--green)' : 'var(--red)';
+  }
+  return backendAvailable;
+}
+
+// Add profile from Instagram share
+async function addProfile() {
+  const input = document.getElementById('addProfileInput');
+  const status = document.getElementById('addProfileStatus');
+  const text = input.value.trim();
+  if (!text) return;
+
+  status.textContent = '🔄 Buscando perfil com IA...';
+  status.style.color = 'var(--purple)';
+
+  const result = await apiPost('/api/profile/add', { text });
+
+  if (result && result.success) {
+    status.textContent = `✅ @${result.username} adicionado! ${result.profile.followers ? '(' + fmt(result.profile.followers) + ' seguidores)' : ''}`;
+    status.style.color = 'var(--green)';
+    input.value = '';
+    loadMyProfiles();
+    // Refresh profiles in feed
+    await refreshFeed();
+  } else if (result && result.error) {
+    status.textContent = '❌ ' + result.error;
+    status.style.color = 'var(--red)';
+  } else {
+    status.textContent = '❌ Backend offline. Rode: python3 backend.py';
+    status.style.color = 'var(--red)';
+  }
+}
+
+async function removeProfile(username) {
+  await apiPost('/api/profile/remove', { username });
+  loadMyProfiles();
+}
+
+async function loadMyProfiles() {
+  const container = document.getElementById('myProfiles');
+  if (!backendAvailable) {
+    container.innerHTML = '<div class="settings-row" style="justify-content:center;color:var(--text3);font-size:12px">Rode <b>python3 backend.py</b> para ativar</div>';
+    return;
+  }
+
+  const profiles = await apiGet('/api/profiles');
+  if (!profiles || profiles.length === 0) {
+    container.innerHTML = '<div class="settings-row" style="justify-content:center;color:var(--text3);font-size:13px">Nenhum perfil adicionado ainda</div>';
+    return;
+  }
+
+  container.innerHTML = profiles.map(p => `
+    <div class="settings-row">
+      <label style="gap:10px">
+        <img src="${p.avatarURL || 'https://i.pravatar.cc/150?u=' + p.username}" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--purple)">
+        <div>
+          <div style="font-size:13px;font-weight:700">${p.displayName || p.username} ${p.isVerified ? '<span style="color:var(--blue)">✓</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--text3)">${p.username} · ${fmt(p.followers || 0)} · ${p.niche || 'Beleza'}</div>
+        </div>
+      </label>
+      <button onclick="removeProfile('${(p.username || '').replace('@', '')}')" style="padding:6px 10px;border:none;border-radius:8px;background:rgba(239,68,68,0.15);color:var(--red);font-size:11px;cursor:pointer">Remover</button>
+    </div>
+  `).join('');
+}
+
+// Request full AI transcription for a content
+async function requestFullTranscription(contentId) {
+  const c = allContent.find(x => x.id === contentId);
+  if (!c) return;
+
+  const btn = event.target;
+  btn.textContent = '🔄 Gerando com IA...';
+  btn.disabled = true;
+
+  const result = await apiPost('/api/content/transcribe', {
+    title: c.title,
+    summary: c.summary
+  });
+
+  if (result && result.transcription) {
+    c.transcription = result.transcription;
+    // Re-render the modal
+    openDetail(contentId);
+  } else {
+    btn.textContent = '❌ Erro - tente novamente';
+    btn.disabled = false;
+  }
+}
+
+// Fetch AI-powered trending content
+async function fetchAITrending(niche) {
+  if (!backendAvailable) return null;
+  const result = await apiGet('/api/trending?niche=' + encodeURIComponent(niche));
+  return result && result.content ? result.content : null;
+}
+
 // ═══ INIT ═══
 
 async function init() {
-  // Register service worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
-  // Show install banner on iOS Safari
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   if (isIOS && !isStandalone) {
     document.getElementById('installBanner').classList.add('show');
   }
 
-  await refreshFeed();
+  // Check backend + load data in parallel
+  await Promise.all([checkBackend(), refreshFeed()]);
+  loadMyProfiles();
 
-  // Auto-refresh every 60s
-  refreshTimer = setInterval(() => {
+  // Auto-refresh every 30s (near real-time)
+  refreshTimer = setInterval(async () => {
     allContent = generateContent();
+
+    // If backend is available, try to get AI-enhanced trending too
+    if (backendAvailable) {
+      const aiContent = await fetchAITrending('beleza');
+      if (aiContent && aiContent.length > 0) {
+        // Merge AI content with generated content
+        aiContent.forEach((ai, idx) => {
+          if (ai.title) {
+            const creator = allContent[idx % allContent.length]?.author || allContent[0].author;
+            allContent.push({
+              id: 'ai-' + idx + '-' + Date.now(),
+              title: ai.title,
+              summary: ai.summary || '',
+              idea: ai.idea || '',
+              transcription: ai.transcription || '',
+              thumbnailURL: `https://picsum.photos/seed/ai${idx}${Date.now() % 100}/800/450`,
+              originalURL: '',
+              platform: ai.platform || 'instagram',
+              contentType: ai.type || 'Video',
+              author: creator,
+              hookPunch: {
+                hook: (ai.transcription || '').substring(0, 120),
+                punchLine: 'E isso muda tudo.',
+                callToAction: 'Salva pra aplicar depois',
+                emotionalTrigger: ai.hookType || 'Curiosidade',
+                hookType: ai.hookType || 'Curiosidade',
+                cloneTemplate: `[HOOK]: ${(ai.transcription || '').substring(0, 80)}...\n[DESENVOLVIMENTO]: Adapte\n[CTA]: Salva`
+              },
+              metrics: {
+                views: rand(100000, 10000000),
+                likes: rand(10000, 500000),
+                comments: rand(1000, 50000),
+                shares: rand(5000, 200000),
+                saves: rand(2000, 100000),
+                viralVelocity: (Math.random() * 23 + 2).toFixed(1)
+              },
+              tags: ai.tags || [],
+              trendScore: rand(80, 99),
+              discoveredAt: new Date(),
+              updatedAt: new Date(),
+            });
+          }
+        });
+      }
+    }
+
     filteredContent = currentPlatform === 'all' ? allContent : allContent.filter(c => c.platform === currentPlatform);
     renderFeed(filteredContent);
     renderProfiles();
     renderDiscover();
     document.getElementById('lastUpdate').textContent = 'Atualizado: Agora';
-  }, 60000);
+  }, 30000);
 }
 
 // Handle back gesture / swipe to close modal
@@ -1097,6 +1305,17 @@ document.getElementById('modal').addEventListener('touchmove', function(e) {
   const dy = e.touches[0].clientY - this._startY;
   if (dy > 100) closeModal();
 }, { passive: true });
+
+// Handle Web Share Target (when user shares from Instagram to this PWA)
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'share-target') {
+      document.getElementById('addProfileInput').value = event.data.text || event.data.url || '';
+      switchTab(3); // Go to settings
+      addProfile();
+    }
+  });
+}
 
 init();
 </script>
