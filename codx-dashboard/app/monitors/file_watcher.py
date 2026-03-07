@@ -95,8 +95,9 @@ class FileWatcher(threading.Thread):
     def _scan_all(self):
         root = Path(EMPIRE_ROOT)
         if not root.exists():
-            # Sem escritório real → simula atividade
-            self.state.simulate_activity()
+            # Sem diretório de escritórios — não faz nada.
+            # (antes chamava simulate_activity() aqui, o que sobrescrevia
+            # estado real vindo do StatusReader a cada 3s)
             return
 
         for folder, agent_id in ESCRITORIOS:

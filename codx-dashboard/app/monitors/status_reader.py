@@ -1,10 +1,13 @@
 """
-StatusReader — Lê periodicamente métricas de log do Claude Desktop
+StatusReader — Lê periodicamente métricas de log do Claude Desktop/Code
 e do sistema operacional para atualizar estado dos fluxos.
 Sem API claude. Lê apenas arquivos locais e processos do sistema.
+Compatível com macOS e Linux.
 """
 
 import os
+import sys
+import platform
 import threading
 import time
 import subprocess
@@ -15,19 +18,40 @@ from datetime import datetime
 from data.state import AppState
 
 
-# Log do Claude Desktop e Claude Code (macOS)
-CLAUDE_LOG_PATHS = [
-    # Claude Code (CLI / desktop sessions)
-    os.path.expanduser("~/.claude/logs/claude.log"),
-    os.path.expanduser("~/.claude/logs/main.log"),
-    os.path.expanduser("~/.claude.log"),
-    # Claude Desktop (app Electron)
-    os.path.expanduser("~/Library/Logs/Claude/claude.log"),
-    os.path.expanduser("~/Library/Application Support/Claude/logs/main.log"),
-    os.path.expanduser("~/Library/Logs/Claude/main.log"),
-    # Claude Code — diretório de projetos (logs locais)
-    os.path.expanduser("~/.claude/projects/*/logs/*.log"),
-]
+def _build_log_paths():
+    """Constrói lista de caminhos de log baseado no SO."""
+    home = os.path.expanduser("~")
+    paths = [
+        # Claude Code (CLI) — funciona em qualquer SO
+        os.path.join(home, ".claude", "logs", "claude.log"),
+        os.path.join(home, ".claude", "logs", "main.log"),
+        os.path.join(home, ".claude.log"),
+        # Claude Code — logs de projetos (glob)
+        os.path.join(home, ".claude", "projects", "*", "logs", "*.log"),
+    ]
+
+    system = platform.system()
+    if system == "Darwin":
+        # macOS — Claude Desktop (app Electron)
+        paths.extend([
+            os.path.join(home, "Library", "Logs", "Claude", "claude.log"),
+            os.path.join(home, "Library", "Application Support", "Claude", "logs", "main.log"),
+            os.path.join(home, "Library", "Logs", "Claude", "main.log"),
+        ])
+    elif system == "Linux":
+        # Linux — locais comuns para Claude Desktop/Code
+        paths.extend([
+            os.path.join(home, ".config", "claude", "logs", "claude.log"),
+            os.path.join(home, ".config", "claude", "logs", "main.log"),
+            os.path.join(home, ".local", "share", "claude", "logs", "*.log"),
+            # Snap / Flatpak
+            os.path.join(home, "snap", "claude", "common", "logs", "*.log"),
+        ])
+
+    return paths
+
+
+CLAUDE_LOG_PATHS = _build_log_paths()
 
 # Arquivo de IPC que os agentes escrevem (opcional)
 IPC_DIR = os.environ.get(
@@ -39,11 +63,14 @@ IPC_DIR = os.environ.get(
 class StatusReader(threading.Thread):
     """
     Thread que:
-    1. Verifica se Claude.app está rodando
-    2. Lê tail do log do Claude Desktop
+    1. Verifica se Claude (Desktop ou Code) está rodando
+    2. Lê tail do log do Claude
     3. Lê arquivos IPC que agentes escrevem (se existirem)
     """
     daemon = True
+
+    # PID do próprio processo (para excluir da detecção)
+    _OWN_PID = str(os.getpid())
 
     def __init__(self, state: AppState):
         super().__init__(name="StatusReader")
@@ -52,6 +79,7 @@ class StatusReader(threading.Thread):
         self._log_fd = None
         self._log_path: str = ""
         self._sim_mode = False
+        self._last_claude_status: str = ""  # evita flood de eventos repetidos
 
     def run(self):
         self._setup_log()
@@ -65,8 +93,9 @@ class StatusReader(threading.Thread):
 
     def _setup_log(self):
         import glob as globmod
+
+        # Tenta caminhos configurados
         for pattern in CLAUDE_LOG_PATHS:
-            # Suporta glob patterns (ex: ~/.claude/projects/*/logs/*.log)
             matched = globmod.glob(pattern) if "*" in pattern else [pattern]
             for path in sorted(matched, key=lambda p: Path(p).stat().st_mtime if Path(p).exists() else 0, reverse=True):
                 if Path(path).exists():
@@ -78,6 +107,23 @@ class StatusReader(threading.Thread):
                         return
                     except Exception:
                         pass
+
+        # Fallback: procura qualquer .log ou .jsonl dentro de ~/.claude/
+        claude_home = Path.home() / ".claude"
+        if claude_home.exists():
+            all_logs = list(claude_home.rglob("*.log")) + list(claude_home.rglob("*.jsonl"))
+            # Ordena por mais recente
+            all_logs.sort(key=lambda p: p.stat().st_mtime if p.exists() else 0, reverse=True)
+            for path in all_logs:
+                try:
+                    self._log_fd   = open(str(path), "r", encoding="utf-8", errors="replace")
+                    self._log_path = str(path)
+                    self._log_fd.seek(0, 2)
+                    self.state.push_event("StatusReader", f"Monitorando log (auto): {path}", "info")
+                    return
+                except Exception:
+                    pass
+
         # Sem log real → modo simulação
         self._sim_mode = True
         self.state.push_event("StatusReader", "Claude log não encontrado — modo demo ativo", "warn")
@@ -85,28 +131,58 @@ class StatusReader(threading.Thread):
     def _check_claude_running(self):
         """Verifica se o processo Claude (Desktop ou Code) está ativo."""
         try:
-            # Tenta detectar Claude Desktop ou Claude Code
-            for proc_name in ["Claude", "claude"]:
+            found = False
+            label = ""
+
+            # 1. Verifica sessão ativa via ~/.claude/ (Claude Code cria arquivos de sessão)
+            claude_dir = Path.home() / ".claude"
+            if claude_dir.exists():
+                # Procura por arquivos de lock / sessão recentes
+                for marker in ["CLAUDE.md", ".claude.json"]:
+                    # Procura em projetos ativos
+                    for f in claude_dir.glob(f"projects/**/{marker}"):
+                        if f.exists():
+                            # Arquivo existe → pode haver sessão
+                            age = time.time() - f.stat().st_mtime
+                            if age < 300:  # modificado nos últimos 5 min
+                                found = True
+                                label = "Claude Code: sessão ativa (projeto recente)"
+                                break
+                    if found:
+                        break
+
+            # 2. Verifica processos
+            if not found:
+                # pgrep -f busca no cmdline completo; filtra nosso próprio PID
                 result = subprocess.run(
-                    ["pgrep", "-xi", proc_name],
+                    ["pgrep", "-af", "claude"],
                     capture_output=True, text=True, timeout=2
                 )
                 if result.returncode == 0:
-                    self.state.push_event(
-                        "system", f"Claude ({proc_name}): sessão ativa", "info"
-                    )
-                    return
+                    own_pid = self._OWN_PID
+                    for line in result.stdout.strip().splitlines():
+                        pid = line.split()[0] if line.split() else ""
+                        if pid == own_pid:
+                            continue
+                        # Ignora o próprio dashboard (python rodando este script)
+                        if "status_reader" in line or "codx-dashboard" in line or "dashboard.py" in line:
+                            continue
+                        # Match real
+                        found = True
+                        if "node" in line.lower() or "claude" in line.lower():
+                            label = "Claude Code: sessão ativa"
+                        else:
+                            label = "Claude: sessão ativa"
+                        break
 
-            # Fallback: verifica se há processo node rodando claude
-            result = subprocess.run(
-                ["pgrep", "-f", "claude"],
-                capture_output=True, text=True, timeout=2
-            )
-            if result.returncode == 0:
-                self.state.push_event("system", "Claude Code: sessão ativa", "info")
-                return
-
-            self.state.push_event("system", "Claude: nenhuma sessão ativa", "warn")
+            # 3. Publica evento apenas se mudou de estado (evita flood)
+            new_status = "active" if found else "inactive"
+            if new_status != self._last_claude_status:
+                self._last_claude_status = new_status
+                if found:
+                    self.state.push_event("system", label, "info")
+                else:
+                    self.state.push_event("system", "Claude: nenhuma sessão ativa", "warn")
         except Exception:
             pass
 
