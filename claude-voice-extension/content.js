@@ -1,11 +1,31 @@
 // Claude Voice Extension — Content Script
-// Transcreve áudio → envia para Claude → lê resposta em voz alta
-// 100% gratuito, usa Web Speech API nativa do navegador
+// Interface de voz para claude.ai
+// STT via offscreen document, TTS via SpeechSynthesis, DOM via MutationObserver
 
 (function () {
   'use strict';
 
-  // ── Settings (loaded from chrome.storage) ──
+  // Prevent double-init
+  if (document.getElementById('claude-voice-container')) return;
+
+  // ── State Machine ──
+  // IDLE → LISTENING → SUBMITTING → WAITING → SPEAKING → IDLE
+  const State = {
+    IDLE: 'idle',
+    LISTENING: 'listening',
+    SUBMITTING: 'submitting',
+    WAITING: 'waiting',
+    SPEAKING: 'speaking',
+  };
+
+  let state = State.IDLE;
+  let finalTranscript = '';
+  let silenceTimer = null;
+  let responseObserver = null;
+  let lastKnownResponseCount = 0;
+  let ttsChromeBugTimer = null;
+
+  // ── Settings ──
   const DEFAULT_SETTINGS = {
     language: 'pt-BR',
     voiceName: '',
@@ -14,23 +34,13 @@
     autoRead: true,
     silenceTimeout: 2000,
     readCodeBlocks: false,
-    shortcutKey: 'Space',
   };
-
   let settings = { ...DEFAULT_SETTINGS };
-  let isListening = false;
-  let isSpeaking = false;
-  let recognition = null;
-  let silenceTimer = null;
-  let finalTranscript = '';
-  let lastResponseCount = 0;
-  let observer = null;
 
-  // ── Load Settings ──
   function loadSettings() {
     if (chrome?.storage?.sync) {
-      chrome.storage.sync.get(DEFAULT_SETTINGS, (stored) => {
-        settings = { ...DEFAULT_SETTINGS, ...stored };
+      chrome.storage.sync.get(DEFAULT_SETTINGS, (s) => {
+        settings = { ...DEFAULT_SETTINGS, ...s };
       });
       chrome.storage.onChanged.addListener((changes) => {
         for (const [key, { newValue }] of Object.entries(changes)) {
@@ -40,33 +50,34 @@
     }
   }
 
-  // ── Create UI ──
+  // ── UI ──
+  let ui = {};
+
   function createUI() {
     const container = document.createElement('div');
     container.id = 'claude-voice-container';
 
-    // Transcript bubble
     const transcript = document.createElement('div');
     transcript.id = 'claude-voice-transcript';
 
-    // Stop TTS button
     const stopBtn = document.createElement('button');
     stopBtn.id = 'claude-voice-stop-btn';
     stopBtn.title = 'Parar leitura';
-    stopBtn.innerHTML = `<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
-    stopBtn.addEventListener('click', stopSpeaking);
+    stopBtn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+    stopBtn.addEventListener('click', () => {
+      stopSpeaking();
+      setState(State.IDLE);
+    });
 
-    // Mic button
     const micBtn = document.createElement('button');
     micBtn.id = 'claude-voice-mic-btn';
-    micBtn.title = 'Clique para falar (ou pressione Espaço)';
+    micBtn.title = 'Clique para falar (Alt+Espaço)';
     micBtn.innerHTML = `<svg viewBox="0 0 24 24">
       <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
       <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
     </svg>`;
-    micBtn.addEventListener('click', toggleListening);
+    micBtn.addEventListener('click', onMicClick);
 
-    // Status
     const status = document.createElement('div');
     status.id = 'claude-voice-status';
 
@@ -76,321 +87,361 @@
     container.appendChild(micBtn);
     document.body.appendChild(container);
 
-    // Make draggable
     makeDraggable(container, micBtn);
 
-    return { container, micBtn, transcript, stopBtn, status };
+    ui = { container, micBtn, transcript, stopBtn, status };
   }
 
-  // ── Draggable ──
   function makeDraggable(container, handle) {
-    let isDragging = false;
-    let startX, startY, startRight, startBottom;
+    let isDrag = false, sx, sy, sr, sb;
 
     handle.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
-      isDragging = false;
-      startX = e.clientX;
-      startY = e.clientY;
-      startRight = parseInt(container.style.right || 24);
-      startBottom = parseInt(container.style.bottom || 100);
+      isDrag = false;
+      sx = e.clientX; sy = e.clientY;
+      sr = parseInt(getComputedStyle(container).right) || 24;
+      sb = parseInt(getComputedStyle(container).bottom) || 100;
 
       const onMove = (e) => {
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
         if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-          isDragging = true;
+          isDrag = true;
           container.classList.add('dragging');
-          container.style.right = Math.max(8, startRight - dx) + 'px';
-          container.style.bottom = Math.max(8, startBottom - dy) + 'px';
+          container.style.right = Math.max(8, sr - dx) + 'px';
+          container.style.bottom = Math.max(8, sb - dy) + 'px';
         }
       };
-
       const onUp = () => {
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
         container.classList.remove('dragging');
-        if (isDragging) {
-          // Prevent click when dragging
-          handle.addEventListener('click', (e) => e.stopImmediatePropagation(), { once: true, capture: true });
+        if (isDrag) {
+          handle.addEventListener('click', e => e.stopImmediatePropagation(), { once: true, capture: true });
         }
       };
-
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
   }
 
-  // ── Speech-to-Text ──
-  function initRecognition() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      showStatus('SpeechRecognition não suportado neste navegador');
-      return null;
+  // ── State Management ──
+  function setState(newState) {
+    state = newState;
+    const { micBtn, stopBtn, transcript, status } = ui;
+    if (!micBtn) return;
+
+    micBtn.classList.remove('listening', 'speaking');
+    stopBtn.classList.remove('visible');
+
+    switch (state) {
+      case State.IDLE:
+        transcript.classList.remove('visible');
+        status.classList.remove('visible');
+        break;
+      case State.LISTENING:
+        micBtn.classList.add('listening');
+        transcript.classList.add('visible');
+        transcript.textContent = 'Ouvindo...';
+        showStatus('🎤 Fale agora');
+        break;
+      case State.SUBMITTING:
+        showStatus('Enviando...');
+        transcript.classList.remove('visible');
+        break;
+      case State.WAITING:
+        showStatus('Aguardando resposta...');
+        break;
+      case State.SPEAKING:
+        micBtn.classList.add('speaking');
+        stopBtn.classList.add('visible');
+        showStatus('Lendo resposta...');
+        break;
     }
+  }
 
-    const rec = new SpeechRecognition();
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.lang = settings.language;
-    rec.maxAlternatives = 1;
+  function showStatus(msg) {
+    if (ui.status) {
+      ui.status.textContent = msg;
+      ui.status.classList.add('visible');
+    }
+  }
 
-    rec.onresult = (event) => {
-      let interim = '';
-      finalTranscript = '';
-
-      for (let i = 0; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript;
+  // ── Mic Click Handler ──
+  function onMicClick() {
+    switch (state) {
+      case State.IDLE:
+      case State.WAITING:
+        startListening();
+        break;
+      case State.LISTENING:
+        stopListening();
+        if (finalTranscript.trim()) {
+          sendMessage(finalTranscript.trim());
         } else {
-          interim += result[0].transcript;
+          setState(State.IDLE);
         }
-      }
-
-      updateTranscript(finalTranscript, interim);
-
-      // Reset silence timer
-      clearTimeout(silenceTimer);
-      if (finalTranscript.trim()) {
-        silenceTimer = setTimeout(() => {
-          if (isListening && settings.autoSubmit) {
-            stopListening();
-            sendMessage(finalTranscript.trim());
-          }
-        }, settings.silenceTimeout);
-      }
-    };
-
-    rec.onerror = (event) => {
-      if (event.error === 'no-speech') return; // Normal, ignore
-      if (event.error === 'aborted') return;
-      console.warn('Claude Voice — STT error:', event.error);
-      showStatus(`Erro: ${event.error}`);
-    };
-
-    rec.onend = () => {
-      // Auto-restart if still in listening mode
-      if (isListening) {
-        try {
-          rec.lang = settings.language;
-          rec.start();
-        } catch (e) {
-          console.warn('Claude Voice — restart failed:', e);
-          stopListening();
-        }
-      }
-    };
-
-    return rec;
-  }
-
-  function toggleListening() {
-    if (isSpeaking) {
-      stopSpeaking();
-      return;
-    }
-    if (isListening) {
-      stopListening();
-      if (finalTranscript.trim()) {
-        sendMessage(finalTranscript.trim());
-      }
-    } else {
-      startListening();
+        break;
+      case State.SPEAKING:
+        stopSpeaking();
+        setState(State.IDLE);
+        break;
+      default:
+        setState(State.IDLE);
     }
   }
 
+  // ── STT via Offscreen Document ──
   function startListening() {
-    if (isListening) return;
-    if (isSpeaking) stopSpeaking();
+    finalTranscript = '';
+    clearTimeout(silenceTimer);
+    setState(State.LISTENING);
 
-    recognition = initRecognition();
-    if (!recognition) return;
-
-    try {
-      recognition.start();
-      isListening = true;
-      finalTranscript = '';
-      ui.micBtn.classList.add('listening');
-      ui.micBtn.classList.remove('speaking');
-      ui.transcript.classList.add('visible');
-      ui.transcript.textContent = 'Ouvindo...';
-      showStatus('Fale agora');
-    } catch (e) {
-      console.error('Claude Voice — start error:', e);
-      showStatus('Erro ao iniciar microfone');
-    }
+    // Send message to background → offscreen to start STT
+    chrome.runtime.sendMessage({
+      target: 'offscreen',
+      type: 'start-stt',
+      lang: settings.language
+    });
   }
 
   function stopListening() {
-    if (!isListening) return;
-    isListening = false;
     clearTimeout(silenceTimer);
-
-    if (recognition) {
-      try { recognition.stop(); } catch (e) { /* ignore */ }
-      recognition = null;
-    }
-
-    ui.micBtn.classList.remove('listening');
-    setTimeout(() => {
-      ui.transcript.classList.remove('visible');
-    }, 1500);
-    hideStatus();
+    chrome.runtime.sendMessage({
+      target: 'offscreen',
+      type: 'stop-stt'
+    });
   }
 
-  function updateTranscript(final, interim) {
+  // Listen for STT results from offscreen document
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.target !== 'content') return;
+
+    switch (msg.type) {
+      case 'stt-result':
+        handleSTTResult(msg.final, msg.interim);
+        break;
+      case 'stt-error':
+        console.warn('Claude Voice STT error:', msg.error);
+        if (msg.error === 'not-allowed') {
+          showStatus('Microfone bloqueado. Permita o acesso.');
+          setTimeout(() => setState(State.IDLE), 3000);
+        }
+        break;
+      case 'stt-started':
+        // STT is running
+        break;
+      case 'stt-stopped':
+        // STT stopped
+        break;
+    }
+  });
+
+  function handleSTTResult(final, interim) {
+    if (state !== State.LISTENING) return;
+
+    finalTranscript = final || '';
+    const display = finalTranscript + (interim ? ' ' + interim : '');
+
+    // Update transcript UI
     const el = ui.transcript;
     el.innerHTML = '';
-    if (final) {
-      const span = document.createElement('span');
-      span.textContent = final;
-      el.appendChild(span);
+    if (finalTranscript) {
+      const s = document.createElement('span');
+      s.textContent = finalTranscript;
+      el.appendChild(s);
     }
     if (interim) {
-      const span = document.createElement('span');
-      span.className = 'interim';
-      span.textContent = (final ? ' ' : '') + interim;
-      el.appendChild(span);
+      const s = document.createElement('span');
+      s.className = 'interim';
+      s.textContent = (finalTranscript ? ' ' : '') + interim;
+      el.appendChild(s);
     }
-    if (!final && !interim) {
+    if (!display.trim()) {
       el.textContent = 'Ouvindo...';
+    }
+
+    // Silence detection → auto-submit
+    clearTimeout(silenceTimer);
+    if (finalTranscript.trim() && settings.autoSubmit) {
+      silenceTimer = setTimeout(() => {
+        if (state === State.LISTENING && finalTranscript.trim()) {
+          stopListening();
+          sendMessage(finalTranscript.trim());
+        }
+      }, settings.silenceTimeout);
     }
   }
 
   // ── DOM Interaction with claude.ai ──
+
   function findInputField() {
-    // Claude.ai uses contenteditable div or textarea — try multiple selectors
+    // Claude.ai uses ProseMirror contenteditable div
     const selectors = [
-      '[contenteditable="true"].ProseMirror',
-      '[contenteditable="true"]',
-      'div.ProseMirror',
+      'div.ProseMirror[contenteditable="true"]',
+      '[contenteditable="true"][data-placeholder]',
+      'div[contenteditable="true"]',
       'textarea',
-      '[data-placeholder]',
     ];
     for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el && isVisible(el)) return el;
+      const els = document.querySelectorAll(sel);
+      for (const el of els) {
+        const rect = el.getBoundingClientRect();
+        // Must be visible and in the bottom half of the page (input area)
+        if (rect.width > 100 && rect.height > 0 && rect.bottom > window.innerHeight * 0.4) {
+          return el;
+        }
+      }
     }
     return null;
   }
 
   function findSendButton() {
-    const selectors = [
+    // Try aria-labels first
+    const ariaSelectors = [
       'button[aria-label="Send Message"]',
-      'button[aria-label="Enviar mensagem"]',
       'button[aria-label="Send message"]',
-      'button[type="submit"]',
+      'button[aria-label="Enviar mensagem"]',
+      'button[aria-label="Enviar Mensagem"]',
       'button[data-testid="send-button"]',
     ];
-    for (const sel of selectors) {
+    for (const sel of ariaSelectors) {
       const el = document.querySelector(sel);
       if (el) return el;
     }
 
-    // Fallback: find send button by SVG path or position
-    const buttons = document.querySelectorAll('button');
-    for (const btn of buttons) {
-      const svg = btn.querySelector('svg');
-      if (svg && btn.closest('[class*="composer"], [class*="input"], form')) {
-        const rect = btn.getBoundingClientRect();
-        if (rect.width > 0 && rect.bottom > window.innerHeight * 0.5) {
-          return btn;
+    // Fallback: find the button near the input area that has an SVG (send icon)
+    const input = findInputField();
+    if (input) {
+      const parent = input.closest('form, fieldset, [class*="composer"], [class*="input-area"]') || input.parentElement?.parentElement?.parentElement;
+      if (parent) {
+        const buttons = parent.querySelectorAll('button');
+        // The send button is usually the last enabled button with an SVG
+        for (let i = buttons.length - 1; i >= 0; i--) {
+          const btn = buttons[i];
+          if (btn.querySelector('svg') && !btn.disabled) {
+            return btn;
+          }
         }
       }
     }
     return null;
   }
 
-  function isVisible(el) {
-    const rect = el.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
-  }
-
   function sendMessage(text) {
     const input = findInputField();
     if (!input) {
-      showStatus('Campo de texto não encontrado');
+      showStatus('Campo de texto nao encontrado!');
+      setTimeout(() => setState(State.IDLE), 2000);
       return;
     }
 
-    // Insert text into input field
+    setState(State.SUBMITTING);
+
+    // Focus and clear
+    input.focus();
+
     if (input.contentEditable === 'true') {
-      // For contenteditable (ProseMirror)
-      input.focus();
+      // ProseMirror: use execCommand for proper framework detection
+      // Select all existing content first
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(input);
+      sel.removeAllRanges();
+      sel.addRange(range);
 
-      // Create a paragraph with the text
-      const p = document.createElement('p');
-      p.textContent = text;
+      // Delete existing content
+      document.execCommand('delete', false, null);
 
-      // Clear existing content and insert
-      input.innerHTML = '';
-      input.appendChild(p);
+      // Insert new text via execCommand — this triggers ProseMirror's input handling
+      document.execCommand('insertText', false, text);
 
-      // Dispatch input events to trigger framework reactivity
+      // Dispatch events as backup
       input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
     } else {
-      // For regular textarea
-      input.focus();
-      input.value = text;
+      // Regular textarea fallback
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype, 'value'
+      )?.set;
+      if (nativeSetter) {
+        nativeSetter.call(input, text);
+      } else {
+        input.value = text;
+      }
       input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // Wait a bit for the framework to process, then click send
+    // Wait for framework to process, then submit
     setTimeout(() => {
       const sendBtn = findSendButton();
       if (sendBtn && !sendBtn.disabled) {
         sendBtn.click();
-        showStatus('Mensagem enviada');
-        setTimeout(hideStatus, 2000);
+        onMessageSent();
       } else {
-        // Try pressing Enter
-        input.dispatchEvent(new KeyboardEvent('keydown', {
-          key: 'Enter',
-          code: 'Enter',
-          keyCode: 13,
-          which: 13,
-          bubbles: true,
-        }));
-        showStatus('Mensagem enviada');
-        setTimeout(hideStatus, 2000);
+        // Retry after a bit more time (button might be enabling)
+        setTimeout(() => {
+          const btn = findSendButton();
+          if (btn && !btn.disabled) {
+            btn.click();
+            onMessageSent();
+          } else {
+            // Try Enter key
+            input.dispatchEvent(new KeyboardEvent('keydown', {
+              key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true
+            }));
+            onMessageSent();
+          }
+        }, 500);
       }
-    }, 300);
+    }, 400);
+  }
+
+  function onMessageSent() {
+    // Count current responses before waiting for new one
+    lastKnownResponseCount = getResponseElements().length;
+    setState(State.WAITING);
+    startWatchingForResponse();
   }
 
   // ── Response Detection ──
+
   function getResponseElements() {
-    // Claude.ai response containers — try multiple selectors
-    const selectors = [
-      '[data-testid="chat-message-content"]',
-      '[class*="message"][class*="assistant"]',
+    // Try multiple selectors for Claude's response messages
+    const selectorGroups = [
+      '[data-testid^="chat-message-"]',
       '.font-claude-message',
+      '[class*="message"][class*="assistant"]',
       '[data-is-streaming]',
     ];
 
-    for (const sel of selectors) {
+    for (const sel of selectorGroups) {
       const els = document.querySelectorAll(sel);
       if (els.length > 0) return Array.from(els);
     }
 
-    // Broader fallback: look for message groups
-    const groups = document.querySelectorAll('[class*="response"], [class*="message"]');
-    return Array.from(groups).filter(el => {
-      const text = el.textContent?.trim();
-      return text && text.length > 10;
-    });
+    // Broader fallback: look for response-like containers
+    // Claude typically renders responses in divs with markdown content
+    const allMessages = document.querySelectorAll('[class*="message"], [class*="response"]');
+    const responses = [];
+    for (const el of allMessages) {
+      // Filter: must have substantial text, and contain markdown-rendered content
+      if (el.querySelector('p, ol, ul, h1, h2, h3, pre') && el.textContent.trim().length > 20) {
+        responses.push(el);
+      }
+    }
+    return responses;
   }
 
-  function isStreaming() {
-    // Detect if Claude is still generating
+  function isStreamingActive() {
     const indicators = [
       '[data-is-streaming="true"]',
       '.result-streaming',
       '[class*="streaming"]',
-      '[class*="typing"]',
-      'button[aria-label="Stop"] , button[aria-label="Parar"]',
+      // "Stop" button presence indicates streaming
+      'button[aria-label="Stop Response"]',
+      'button[aria-label="Stop response"]',
+      'button[aria-label="Parar resposta"]',
+      'button[aria-label="Stop"]',
+      'button[aria-label="Parar"]',
     ];
     for (const sel of indicators) {
       if (document.querySelector(sel)) return true;
@@ -398,33 +449,17 @@
     return false;
   }
 
-  function getLastResponseText() {
-    const responses = getResponseElements();
-    if (responses.length === 0) return '';
-
-    const lastResponse = responses[responses.length - 1];
-    let text = '';
-
-    if (settings.readCodeBlocks) {
-      text = lastResponse.textContent || '';
-    } else {
-      // Skip code blocks
-      const clone = lastResponse.cloneNode(true);
-      clone.querySelectorAll('pre, code, .code-block').forEach(el => el.remove());
-      text = clone.textContent || '';
-    }
-
-    return text.trim();
-  }
-
-  function startObserver() {
-    if (observer) observer.disconnect();
+  function startWatchingForResponse() {
+    if (responseObserver) responseObserver.disconnect();
 
     let debounceTimer = null;
     let wasStreaming = false;
+    let checkCount = 0;
+    const maxChecks = 120; // 2 minutes max wait (at 1s interval)
 
-    observer = new MutationObserver(() => {
-      const streaming = isStreaming();
+    // MutationObserver for detecting streaming start/end
+    responseObserver = new MutationObserver(() => {
+      const streaming = isStreamingActive();
 
       if (streaming) {
         wasStreaming = true;
@@ -433,73 +468,133 @@
       }
 
       if (wasStreaming && !streaming) {
-        // Just finished streaming
+        // Streaming just ended
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           wasStreaming = false;
-          onNewResponse();
-        }, 500);
+          responseObserver.disconnect();
+          responseObserver = null;
+          onResponseComplete();
+        }, 1000); // Wait 1s after streaming stops to be sure
       }
     });
 
-    // Observe the main content area
     const target = document.querySelector('main') || document.body;
-    observer.observe(target, {
+    responseObserver.observe(target, {
       childList: true,
       subtree: true,
       characterData: true,
+      attributes: true,
+      attributeFilter: ['data-is-streaming', 'class'],
     });
 
-    // Also check periodically for response changes (backup)
-    setInterval(() => {
-      const responses = getResponseElements();
-      if (responses.length > lastResponseCount) {
-        lastResponseCount = responses.length;
-        // Wait for streaming to finish
-        const checkDone = () => {
-          if (!isStreaming()) {
-            setTimeout(onNewResponse, 800);
-          } else {
-            setTimeout(checkDone, 500);
-          }
-        };
-        setTimeout(checkDone, 1000);
+    // Backup: periodic check in case MutationObserver misses it
+    const intervalId = setInterval(() => {
+      checkCount++;
+      if (state !== State.WAITING) {
+        clearInterval(intervalId);
+        return;
       }
-    }, 2000);
+      if (checkCount > maxChecks) {
+        clearInterval(intervalId);
+        setState(State.IDLE);
+        return;
+      }
+
+      const responses = getResponseElements();
+      if (responses.length > lastKnownResponseCount && !isStreamingActive()) {
+        clearInterval(intervalId);
+        if (responseObserver) {
+          responseObserver.disconnect();
+          responseObserver = null;
+        }
+        clearTimeout(debounceTimer);
+        // Give extra time for final render
+        setTimeout(onResponseComplete, 800);
+      }
+    }, 1000);
   }
 
-  function onNewResponse() {
-    if (!settings.autoRead) return;
-    if (isListening) return; // Don't read while user is talking
+  function onResponseComplete() {
+    if (state !== State.WAITING) return;
+
+    if (!settings.autoRead) {
+      setState(State.IDLE);
+      return;
+    }
 
     const text = getLastResponseText();
     if (text && text.length > 5) {
       speakText(text);
+    } else {
+      setState(State.IDLE);
     }
   }
 
+  function getLastResponseText() {
+    const responses = getResponseElements();
+    if (responses.length === 0) return '';
+
+    const lastResponse = responses[responses.length - 1];
+
+    if (settings.readCodeBlocks) {
+      return lastResponse.textContent?.trim() || '';
+    }
+
+    // Clone and remove code blocks
+    const clone = lastResponse.cloneNode(true);
+    clone.querySelectorAll('pre, code, .code-block, [class*="code"]').forEach(el => {
+      const replacement = document.createTextNode(' bloco de código omitido. ');
+      el.parentNode.replaceChild(replacement, el);
+    });
+
+    // Clean markdown artifacts
+    let text = clone.textContent || '';
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+    return text;
+  }
+
   // ── Text-to-Speech ──
+
   function speakText(text) {
-    if (isSpeaking) stopSpeaking();
+    stopSpeaking();
 
     const synth = window.speechSynthesis;
     if (!synth) {
-      showStatus('SpeechSynthesis não suportado');
+      showStatus('SpeechSynthesis nao suportado');
+      setState(State.IDLE);
       return;
     }
 
-    // Split long text into chunks at sentence boundaries
-    const chunks = splitIntoChunks(text, 200);
+    setState(State.SPEAKING);
 
-    isSpeaking = true;
-    ui.micBtn.classList.add('speaking');
-    ui.stopBtn.classList.add('visible');
+    // Clean text for natural speech
+    let cleaned = text
+      .replace(/```[\s\S]*?```/g, ' bloco de código omitido. ')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[#*_~>|]/g, '')
+      .replace(/\n{2,}/g, '. ')
+      .replace(/\n/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
 
+    const chunks = splitIntoChunks(cleaned, 180);
     let chunkIndex = 0;
 
+    // Chrome bug workaround: synthesis pauses after ~15s
+    // Keep it alive with pause/resume cycling
+    ttsChromeBugTimer = setInterval(() => {
+      if (synth.speaking && !synth.paused) {
+        synth.pause();
+        synth.resume();
+      }
+    }, 10000);
+
     function speakNext() {
-      if (chunkIndex >= chunks.length || !isSpeaking) {
+      if (chunkIndex >= chunks.length || state !== State.SPEAKING) {
         stopSpeaking();
+        setState(State.IDLE);
         return;
       }
 
@@ -507,7 +602,7 @@
       utterance.lang = settings.language;
       utterance.rate = settings.speechRate;
 
-      // Set voice if specified
+      // Select voice
       if (settings.voiceName) {
         const voices = synth.getVoices();
         const voice = voices.find(v => v.name === settings.voiceName);
@@ -516,14 +611,16 @@
 
       utterance.onend = () => {
         chunkIndex++;
-        speakNext();
+        // Small pause between chunks for naturalness
+        setTimeout(speakNext, 100);
       };
 
       utterance.onerror = (e) => {
-        if (e.error !== 'interrupted') {
-          console.warn('Claude Voice — TTS error:', e.error);
+        if (e.error !== 'interrupted' && e.error !== 'canceled') {
+          console.warn('Claude Voice TTS error:', e.error);
         }
         stopSpeaking();
+        setState(State.IDLE);
       };
 
       synth.speak(utterance);
@@ -532,14 +629,14 @@
     speakNext();
   }
 
-  function splitIntoChunks(text, maxLength) {
+  function splitIntoChunks(text, maxLen) {
+    // Split by sentences
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
     const chunks = [];
-    // Split by sentences first
-    const sentences = text.match(/[^.!?\n]+[.!?\n]*/g) || [text];
-
     let current = '';
+
     for (const sentence of sentences) {
-      if ((current + sentence).length > maxLength && current) {
+      if ((current + sentence).length > maxLen && current.trim()) {
         chunks.push(current.trim());
         current = sentence;
       } else {
@@ -548,19 +645,18 @@
     }
     if (current.trim()) chunks.push(current.trim());
 
-    // Further split any chunks that are still too long
+    // Split any remaining long chunks by commas/spaces
     const result = [];
     for (const chunk of chunks) {
-      if (chunk.length > maxLength) {
-        // Split by comma or space
-        const words = chunk.split(/(?<=\s)/);
+      if (chunk.length > maxLen) {
+        const parts = chunk.split(/(?<=[,;])\s+/);
         let part = '';
-        for (const word of words) {
-          if ((part + word).length > maxLength && part) {
+        for (const p of parts) {
+          if ((part + ' ' + p).length > maxLen && part.trim()) {
             result.push(part.trim());
-            part = word;
+            part = p;
           } else {
-            part += word;
+            part += (part ? ' ' : '') + p;
           }
         }
         if (part.trim()) result.push(part.trim());
@@ -568,66 +664,83 @@
         result.push(chunk);
       }
     }
-    return result;
+    return result.length > 0 ? result : [text];
   }
 
   function stopSpeaking() {
-    isSpeaking = false;
+    clearInterval(ttsChromeBugTimer);
+    ttsChromeBugTimer = null;
     window.speechSynthesis?.cancel();
-    ui.micBtn.classList.remove('speaking');
-    ui.stopBtn.classList.remove('visible');
   }
 
-  // ── Status ──
-  function showStatus(msg) {
-    if (ui?.status) {
-      ui.status.textContent = msg;
-      ui.status.classList.add('visible');
-    }
-  }
+  // ── Keyboard Shortcuts ──
 
-  function hideStatus() {
-    if (ui?.status) {
-      ui.status.classList.remove('visible');
-    }
-  }
-
-  // ── Keyboard Shortcut ──
-  function initShortcut() {
+  function initShortcuts() {
     document.addEventListener('keydown', (e) => {
-      // Alt + Space to toggle mic (don't interfere with normal typing)
+      // Alt+Space → toggle mic
       if (e.altKey && e.code === 'Space') {
         e.preventDefault();
-        toggleListening();
+        e.stopPropagation();
+        onMicClick();
       }
-      // Escape to stop TTS
-      if (e.key === 'Escape' && isSpeaking) {
-        stopSpeaking();
+      // Escape → stop TTS or stop listening
+      if (e.key === 'Escape') {
+        if (state === State.SPEAKING) {
+          stopSpeaking();
+          setState(State.IDLE);
+        } else if (state === State.LISTENING) {
+          stopListening();
+          setState(State.IDLE);
+        }
       }
-    });
+    }, true);
+  }
+
+  // ── Auto-read for non-voice responses (passive mode) ──
+
+  function startPassiveObserver() {
+    let lastCount = getResponseElements().length;
+
+    setInterval(() => {
+      // Only auto-read when idle and autoRead is on
+      if (state !== State.IDLE || !settings.autoRead) return;
+
+      const responses = getResponseElements();
+      if (responses.length > lastCount && !isStreamingActive()) {
+        lastCount = responses.length;
+        // Wait a bit to make sure streaming is fully done
+        setTimeout(() => {
+          if (!isStreamingActive() && state === State.IDLE) {
+            const text = getLastResponseText();
+            if (text && text.length > 10) {
+              speakText(text);
+            }
+          }
+        }, 2000);
+      } else {
+        lastCount = responses.length;
+      }
+    }, 3000);
   }
 
   // ── Init ──
-  let ui;
 
   function init() {
-    // Don't initialize if already present
-    if (document.getElementById('claude-voice-container')) return;
-
     loadSettings();
-    ui = createUI();
-    initShortcut();
+    createUI();
+    initShortcuts();
+    setState(State.IDLE);
 
-    // Wait for page to fully load, then start observer
+    // Start passive observer after page settles
     setTimeout(() => {
-      lastResponseCount = getResponseElements().length;
-      startObserver();
-    }, 2000);
+      startPassiveObserver();
+    }, 3000);
 
-    console.log('Claude Voice Extension — Ativo! Alt+Espaço para ativar/desativar mic.');
+    console.log('%c Claude Voice Extension ativo! %c Alt+Espaço para mic.',
+      'background: #e67e22; color: white; padding: 4px 8px; border-radius: 4px;',
+      'color: #888;');
   }
 
-  // Start when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
