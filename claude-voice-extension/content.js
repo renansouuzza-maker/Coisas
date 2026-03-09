@@ -1,5 +1,5 @@
-// Claude Voice Extension — Content Script
-// Interface de voz para claude.ai
+// AI Voice Extension — Content Script
+// Interface de voz para chats de IA (Claude, ChatGPT, Gemini, Copilot, etc)
 // STT via offscreen document, TTS via SpeechSynthesis, DOM via MutationObserver
 
 (function () {
@@ -8,8 +8,242 @@
   // Prevent double-init
   if (document.getElementById('claude-voice-container')) return;
 
+  // ── Site Detection ──
+  const hostname = location.hostname;
+  const SITE = detectSite();
+
+  function detectSite() {
+    if (hostname.includes('claude.ai')) return 'claude';
+    if (hostname.includes('chatgpt.com') || hostname.includes('chat.openai.com')) return 'chatgpt';
+    if (hostname.includes('gemini.google.com')) return 'gemini';
+    if (hostname.includes('copilot.microsoft.com')) return 'copilot';
+    if (hostname.includes('perplexity.ai')) return 'perplexity';
+    if (hostname.includes('poe.com')) return 'poe';
+    if (hostname.includes('chat.deepseek.com')) return 'deepseek';
+    if (hostname.includes('chat.mistral.ai')) return 'mistral';
+    if (hostname.includes('huggingface.co')) return 'huggingface';
+    return 'generic';
+  }
+
+  // ── Site-specific selectors ──
+  const SITE_CONFIG = {
+    claude: {
+      input: [
+        'div.ProseMirror[contenteditable="true"]',
+        '[contenteditable="true"][data-placeholder]',
+      ],
+      sendButton: [
+        'button[aria-label="Send Message"]',
+        'button[aria-label="Send message"]',
+        'button[aria-label="Enviar mensagem"]',
+        'button[data-testid="send-button"]',
+      ],
+      responseMessage: [
+        '[data-testid^="chat-message-"]',
+        '.font-claude-message',
+      ],
+      streamingIndicator: [
+        '[data-is-streaming="true"]',
+        'button[aria-label="Stop Response"]',
+        'button[aria-label="Stop response"]',
+        'button[aria-label="Parar resposta"]',
+      ],
+    },
+    chatgpt: {
+      input: [
+        '#prompt-textarea',
+        'div#prompt-textarea[contenteditable="true"]',
+        'textarea[data-id="root"]',
+      ],
+      sendButton: [
+        'button[data-testid="send-button"]',
+        'button[aria-label="Send prompt"]',
+        'button[aria-label="Enviar prompt"]',
+        'form button[data-testid="send-button"]',
+      ],
+      responseMessage: [
+        '[data-message-author-role="assistant"]',
+        'div.agent-turn',
+        '[class*="assistant"]',
+      ],
+      streamingIndicator: [
+        'button[aria-label="Stop generating"]',
+        'button[aria-label="Parar de gerar"]',
+        '.result-streaming',
+      ],
+    },
+    gemini: {
+      input: [
+        '.ql-editor[contenteditable="true"]',
+        'div.input-area [contenteditable="true"]',
+        'rich-textarea [contenteditable="true"]',
+        '.text-input-field [contenteditable="true"]',
+      ],
+      sendButton: [
+        'button.send-button',
+        'button[aria-label="Send message"]',
+        'button[aria-label="Enviar mensagem"]',
+        '.send-button-container button',
+      ],
+      responseMessage: [
+        'message-content.model-response-text',
+        '.response-container .model-response-text',
+        '.conversation-container .model-response',
+        'model-response',
+      ],
+      streamingIndicator: [
+        '.loading-indicator',
+        '[class*="loading"]',
+        'button[aria-label="Stop"]',
+      ],
+    },
+    copilot: {
+      input: [
+        '#searchbox[contenteditable="true"]',
+        'textarea#searchbox',
+        '[contenteditable="true"]',
+        'cib-text-input textarea',
+      ],
+      sendButton: [
+        'button[aria-label="Submit"]',
+        'button[aria-label="Enviar"]',
+        'cib-icon-button[aria-label="Submit"]',
+      ],
+      responseMessage: [
+        'cib-message[type="bot"]',
+        '[data-content="ai-message"]',
+        '.response-message-group',
+      ],
+      streamingIndicator: [
+        'cib-typing-indicator',
+        '[class*="typing"]',
+        'button[aria-label="Stop Responding"]',
+      ],
+    },
+    perplexity: {
+      input: [
+        'textarea[placeholder*="Ask"]',
+        'textarea[placeholder*="Pergunt"]',
+        'textarea',
+      ],
+      sendButton: [
+        'button[aria-label="Submit"]',
+        'button[aria-label="Enviar"]',
+        'button[type="submit"]',
+      ],
+      responseMessage: [
+        '.prose',
+        '[class*="answer"]',
+        '.markdown-content',
+      ],
+      streamingIndicator: [
+        '[class*="loading"]',
+        '.animate-pulse',
+      ],
+    },
+    poe: {
+      input: [
+        'textarea[class*="TextArea"]',
+        'textarea',
+      ],
+      sendButton: [
+        'button[class*="SendButton"]',
+        'button[class*="send"]',
+      ],
+      responseMessage: [
+        '[class*="Message_botMessage"]',
+        '[class*="bot_message"]',
+      ],
+      streamingIndicator: [
+        '[class*="ChatStopMessage"]',
+        'button[class*="stop"]',
+      ],
+    },
+    deepseek: {
+      input: [
+        '#chat-input',
+        'textarea[placeholder]',
+        'textarea',
+      ],
+      sendButton: [
+        'div[class*="send"] button',
+        'button[class*="send"]',
+        'button[aria-label*="Send"]',
+      ],
+      responseMessage: [
+        '.markdown-body',
+        '[class*="assistant"]',
+        '[class*="bot-message"]',
+      ],
+      streamingIndicator: [
+        '[class*="stop"]',
+        '.loading',
+      ],
+    },
+    mistral: {
+      input: [
+        'textarea',
+        '[contenteditable="true"]',
+      ],
+      sendButton: [
+        'button[type="submit"]',
+        'button[aria-label*="Send"]',
+      ],
+      responseMessage: [
+        '[class*="assistant"]',
+        '.prose',
+      ],
+      streamingIndicator: [
+        '[class*="stop"]',
+        '[class*="loading"]',
+      ],
+    },
+    huggingface: {
+      input: [
+        'textarea[placeholder]',
+        'textarea',
+      ],
+      sendButton: [
+        'button[type="submit"]',
+        'button[class*="send"]',
+      ],
+      responseMessage: [
+        '.message.bot',
+        '[class*="bot"]',
+        '.prose',
+      ],
+      streamingIndicator: [
+        '[class*="stop"]',
+        '.generating',
+      ],
+    },
+    generic: {
+      input: [
+        '[contenteditable="true"]',
+        'textarea',
+      ],
+      sendButton: [
+        'button[type="submit"]',
+        'button[aria-label*="Send"]',
+        'button[aria-label*="send"]',
+      ],
+      responseMessage: [
+        '[class*="assistant"]',
+        '[class*="bot"]',
+        '.prose',
+        '.markdown',
+      ],
+      streamingIndicator: [
+        '[class*="stop"]',
+        '[class*="loading"]',
+        '[class*="streaming"]',
+      ],
+    },
+  };
+
+  const config = SITE_CONFIG[SITE] || SITE_CONFIG.generic;
+
   // ── State Machine ──
-  // IDLE → LISTENING → SUBMITTING → WAITING → SPEAKING → IDLE
   const State = {
     IDLE: 'idle',
     LISTENING: 'listening',
@@ -142,7 +376,7 @@
         micBtn.classList.add('listening');
         transcript.classList.add('visible');
         transcript.textContent = 'Ouvindo...';
-        showStatus('🎤 Fale agora');
+        showStatus('Fale agora');
         break;
       case State.SUBMITTING:
         showStatus('Enviando...');
@@ -196,7 +430,6 @@
     clearTimeout(silenceTimer);
     setState(State.LISTENING);
 
-    // Send message to background → offscreen to start STT
     chrome.runtime.sendMessage({
       target: 'offscreen',
       type: 'start-stt',
@@ -212,7 +445,6 @@
     });
   }
 
-  // Listen for STT results from offscreen document
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.target !== 'content') return;
 
@@ -221,17 +453,11 @@
         handleSTTResult(msg.final, msg.interim);
         break;
       case 'stt-error':
-        console.warn('Claude Voice STT error:', msg.error);
+        console.warn('AI Voice STT error:', msg.error);
         if (msg.error === 'not-allowed') {
           showStatus('Microfone bloqueado. Permita o acesso.');
           setTimeout(() => setState(State.IDLE), 3000);
         }
-        break;
-      case 'stt-started':
-        // STT is running
-        break;
-      case 'stt-stopped':
-        // STT stopped
         break;
     }
   });
@@ -242,7 +468,6 @@
     finalTranscript = final || '';
     const display = finalTranscript + (interim ? ' ' + interim : '');
 
-    // Update transcript UI
     const el = ui.transcript;
     el.innerHTML = '';
     if (finalTranscript) {
@@ -260,7 +485,6 @@
       el.textContent = 'Ouvindo...';
     }
 
-    // Silence detection → auto-submit
     clearTimeout(silenceTimer);
     if (finalTranscript.trim() && settings.autoSubmit) {
       silenceTimer = setTimeout(() => {
@@ -272,22 +496,21 @@
     }
   }
 
-  // ── DOM Interaction with claude.ai ──
+  // ── DOM Interaction (multi-site) ──
 
   function findInputField() {
-    // Claude.ai uses ProseMirror contenteditable div
-    const selectors = [
-      'div.ProseMirror[contenteditable="true"]',
-      '[contenteditable="true"][data-placeholder]',
-      'div[contenteditable="true"]',
-      'textarea',
-    ];
+    // Try site-specific selectors first, then generic fallback
+    const selectors = [...config.input, 'div[contenteditable="true"]', 'textarea'];
+    const seen = new Set();
+
     for (const sel of selectors) {
+      if (seen.has(sel)) continue;
+      seen.add(sel);
+
       const els = document.querySelectorAll(sel);
       for (const el of els) {
         const rect = el.getBoundingClientRect();
-        // Must be visible and in the bottom half of the page (input area)
-        if (rect.width > 100 && rect.height > 0 && rect.bottom > window.innerHeight * 0.4) {
+        if (rect.width > 50 && rect.height > 0 && rect.bottom > window.innerHeight * 0.3) {
           return el;
         }
       }
@@ -296,26 +519,19 @@
   }
 
   function findSendButton() {
-    // Try aria-labels first
-    const ariaSelectors = [
-      'button[aria-label="Send Message"]',
-      'button[aria-label="Send message"]',
-      'button[aria-label="Enviar mensagem"]',
-      'button[aria-label="Enviar Mensagem"]',
-      'button[data-testid="send-button"]',
-    ];
-    for (const sel of ariaSelectors) {
+    const selectors = [...config.sendButton];
+    for (const sel of selectors) {
       const el = document.querySelector(sel);
-      if (el) return el;
+      if (el && !el.disabled) return el;
     }
 
-    // Fallback: find the button near the input area that has an SVG (send icon)
+    // Fallback: find button near input with SVG icon
     const input = findInputField();
     if (input) {
-      const parent = input.closest('form, fieldset, [class*="composer"], [class*="input-area"]') || input.parentElement?.parentElement?.parentElement;
+      const parent = input.closest('form, fieldset, [class*="composer"], [class*="input"]')
+        || input.parentElement?.parentElement?.parentElement;
       if (parent) {
         const buttons = parent.querySelectorAll('button');
-        // The send button is usually the last enabled button with an SVG
         for (let i = buttons.length - 1; i >= 0; i--) {
           const btn = buttons[i];
           if (btn.querySelector('svg') && !btn.disabled) {
@@ -336,29 +552,23 @@
     }
 
     setState(State.SUBMITTING);
-
-    // Focus and clear
     input.focus();
 
-    if (input.contentEditable === 'true') {
-      // ProseMirror: use execCommand for proper framework detection
-      // Select all existing content first
+    const isContentEditable = input.contentEditable === 'true';
+    const isTextarea = input.tagName === 'TEXTAREA';
+
+    if (isContentEditable) {
+      // ProseMirror / Quill / generic contenteditable
       const sel = window.getSelection();
       const range = document.createRange();
       range.selectNodeContents(input);
       sel.removeAllRanges();
       sel.addRange(range);
-
-      // Delete existing content
       document.execCommand('delete', false, null);
-
-      // Insert new text via execCommand — this triggers ProseMirror's input handling
       document.execCommand('insertText', false, text);
-
-      // Dispatch events as backup
       input.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-      // Regular textarea fallback
+    } else if (isTextarea) {
+      // ChatGPT, Perplexity, Poe, etc use textarea with React
       const nativeSetter = Object.getOwnPropertyDescriptor(
         window.HTMLTextAreaElement.prototype, 'value'
       )?.set;
@@ -368,6 +578,12 @@
         input.value = text;
       }
       input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Also fire React's synthetic event
+      const reactEvent = new Event('input', { bubbles: true });
+      Object.defineProperty(reactEvent, 'target', { value: input });
+      input.dispatchEvent(reactEvent);
     }
 
     // Wait for framework to process, then submit
@@ -377,17 +593,18 @@
         sendBtn.click();
         onMessageSent();
       } else {
-        // Retry after a bit more time (button might be enabling)
+        // Retry — button might be enabling after text input
         setTimeout(() => {
           const btn = findSendButton();
           if (btn && !btn.disabled) {
             btn.click();
             onMessageSent();
           } else {
-            // Try Enter key
-            input.dispatchEvent(new KeyboardEvent('keydown', {
+            // Try Enter key as last resort
+            const enterEvent = new KeyboardEvent('keydown', {
               key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true
-            }));
+            });
+            input.dispatchEvent(enterEvent);
             onMessageSent();
           }
         }, 500);
@@ -396,34 +613,27 @@
   }
 
   function onMessageSent() {
-    // Count current responses before waiting for new one
     lastKnownResponseCount = getResponseElements().length;
     setState(State.WAITING);
     startWatchingForResponse();
   }
 
-  // ── Response Detection ──
+  // ── Response Detection (multi-site) ──
 
   function getResponseElements() {
-    // Try multiple selectors for Claude's response messages
-    const selectorGroups = [
-      '[data-testid^="chat-message-"]',
-      '.font-claude-message',
-      '[class*="message"][class*="assistant"]',
-      '[data-is-streaming]',
-    ];
+    const selectors = [...config.responseMessage];
 
-    for (const sel of selectorGroups) {
-      const els = document.querySelectorAll(sel);
-      if (els.length > 0) return Array.from(els);
+    for (const sel of selectors) {
+      try {
+        const els = document.querySelectorAll(sel);
+        if (els.length > 0) return Array.from(els);
+      } catch (e) { /* invalid selector */ }
     }
 
-    // Broader fallback: look for response-like containers
-    // Claude typically renders responses in divs with markdown content
-    const allMessages = document.querySelectorAll('[class*="message"], [class*="response"]');
+    // Broad fallback
+    const allMessages = document.querySelectorAll('[class*="message"], [class*="response"], [class*="answer"]');
     const responses = [];
     for (const el of allMessages) {
-      // Filter: must have substantial text, and contain markdown-rendered content
       if (el.querySelector('p, ol, ul, h1, h2, h3, pre') && el.textContent.trim().length > 20) {
         responses.push(el);
       }
@@ -432,19 +642,11 @@
   }
 
   function isStreamingActive() {
-    const indicators = [
-      '[data-is-streaming="true"]',
-      '.result-streaming',
-      '[class*="streaming"]',
-      // "Stop" button presence indicates streaming
-      'button[aria-label="Stop Response"]',
-      'button[aria-label="Stop response"]',
-      'button[aria-label="Parar resposta"]',
-      'button[aria-label="Stop"]',
-      'button[aria-label="Parar"]',
-    ];
-    for (const sel of indicators) {
-      if (document.querySelector(sel)) return true;
+    const selectors = [...config.streamingIndicator, '[class*="streaming"]', '.animate-spin'];
+    for (const sel of selectors) {
+      try {
+        if (document.querySelector(sel)) return true;
+      } catch (e) { /* invalid selector */ }
     }
     return false;
   }
@@ -455,9 +657,8 @@
     let debounceTimer = null;
     let wasStreaming = false;
     let checkCount = 0;
-    const maxChecks = 120; // 2 minutes max wait (at 1s interval)
+    const maxChecks = 120;
 
-    // MutationObserver for detecting streaming start/end
     responseObserver = new MutationObserver(() => {
       const streaming = isStreamingActive();
 
@@ -468,14 +669,13 @@
       }
 
       if (wasStreaming && !streaming) {
-        // Streaming just ended
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           wasStreaming = false;
           responseObserver.disconnect();
           responseObserver = null;
           onResponseComplete();
-        }, 1000); // Wait 1s after streaming stops to be sure
+        }, 1000);
       }
     });
 
@@ -485,10 +685,9 @@
       subtree: true,
       characterData: true,
       attributes: true,
-      attributeFilter: ['data-is-streaming', 'class'],
     });
 
-    // Backup: periodic check in case MutationObserver misses it
+    // Backup polling
     const intervalId = setInterval(() => {
       checkCount++;
       if (state !== State.WAITING) {
@@ -509,7 +708,6 @@
           responseObserver = null;
         }
         clearTimeout(debounceTimer);
-        // Give extra time for final render
         setTimeout(onResponseComplete, 800);
       }
     }, 1000);
@@ -541,14 +739,12 @@
       return lastResponse.textContent?.trim() || '';
     }
 
-    // Clone and remove code blocks
     const clone = lastResponse.cloneNode(true);
-    clone.querySelectorAll('pre, code, .code-block, [class*="code"]').forEach(el => {
-      const replacement = document.createTextNode(' bloco de código omitido. ');
+    clone.querySelectorAll('pre, code, .code-block, [class*="code-block"], [class*="hljs"]').forEach(el => {
+      const replacement = document.createTextNode(' bloco de codigo omitido. ');
       el.parentNode.replaceChild(replacement, el);
     });
 
-    // Clean markdown artifacts
     let text = clone.textContent || '';
     text = text.replace(/\n{3,}/g, '\n\n').trim();
     return text;
@@ -568,9 +764,8 @@
 
     setState(State.SPEAKING);
 
-    // Clean text for natural speech
     let cleaned = text
-      .replace(/```[\s\S]*?```/g, ' bloco de código omitido. ')
+      .replace(/```[\s\S]*?```/g, ' bloco de codigo omitido. ')
       .replace(/`([^`]+)`/g, '$1')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/[#*_~>|]/g, '')
@@ -582,8 +777,6 @@
     const chunks = splitIntoChunks(cleaned, 180);
     let chunkIndex = 0;
 
-    // Chrome bug workaround: synthesis pauses after ~15s
-    // Keep it alive with pause/resume cycling
     ttsChromeBugTimer = setInterval(() => {
       if (synth.speaking && !synth.paused) {
         synth.pause();
@@ -602,7 +795,6 @@
       utterance.lang = settings.language;
       utterance.rate = settings.speechRate;
 
-      // Select voice
       if (settings.voiceName) {
         const voices = synth.getVoices();
         const voice = voices.find(v => v.name === settings.voiceName);
@@ -611,13 +803,12 @@
 
       utterance.onend = () => {
         chunkIndex++;
-        // Small pause between chunks for naturalness
         setTimeout(speakNext, 100);
       };
 
       utterance.onerror = (e) => {
         if (e.error !== 'interrupted' && e.error !== 'canceled') {
-          console.warn('Claude Voice TTS error:', e.error);
+          console.warn('AI Voice TTS error:', e.error);
         }
         stopSpeaking();
         setState(State.IDLE);
@@ -630,7 +821,6 @@
   }
 
   function splitIntoChunks(text, maxLen) {
-    // Split by sentences
     const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
     const chunks = [];
     let current = '';
@@ -645,7 +835,6 @@
     }
     if (current.trim()) chunks.push(current.trim());
 
-    // Split any remaining long chunks by commas/spaces
     const result = [];
     for (const chunk of chunks) {
       if (chunk.length > maxLen) {
@@ -677,13 +866,11 @@
 
   function initShortcuts() {
     document.addEventListener('keydown', (e) => {
-      // Alt+Space → toggle mic
       if (e.altKey && e.code === 'Space') {
         e.preventDefault();
         e.stopPropagation();
         onMicClick();
       }
-      // Escape → stop TTS or stop listening
       if (e.key === 'Escape') {
         if (state === State.SPEAKING) {
           stopSpeaking();
@@ -696,19 +883,17 @@
     }, true);
   }
 
-  // ── Auto-read for non-voice responses (passive mode) ──
+  // ── Passive auto-read observer ──
 
   function startPassiveObserver() {
     let lastCount = getResponseElements().length;
 
     setInterval(() => {
-      // Only auto-read when idle and autoRead is on
       if (state !== State.IDLE || !settings.autoRead) return;
 
       const responses = getResponseElements();
       if (responses.length > lastCount && !isStreamingActive()) {
         lastCount = responses.length;
-        // Wait a bit to make sure streaming is fully done
         setTimeout(() => {
           if (!isStreamingActive() && state === State.IDLE) {
             const text = getLastResponseText();
@@ -731,14 +916,22 @@
     initShortcuts();
     setState(State.IDLE);
 
-    // Start passive observer after page settles
     setTimeout(() => {
       startPassiveObserver();
     }, 3000);
 
-    console.log('%c Claude Voice Extension ativo! %c Alt+Espaço para mic.',
+    const siteNames = {
+      claude: 'Claude', chatgpt: 'ChatGPT', gemini: 'Gemini',
+      copilot: 'Copilot', perplexity: 'Perplexity', poe: 'Poe',
+      deepseek: 'DeepSeek', mistral: 'Mistral', huggingface: 'HuggingFace',
+      generic: location.hostname,
+    };
+
+    console.log(
+      `%c AI Voice Extension ativo em ${siteNames[SITE]}! %c Alt+Espaco para mic.`,
       'background: #e67e22; color: white; padding: 4px 8px; border-radius: 4px;',
-      'color: #888;');
+      'color: #888;'
+    );
   }
 
   if (document.readyState === 'loading') {

@@ -1,6 +1,5 @@
-// Claude Voice — Offscreen Document for Speech Recognition
-// SpeechRecognition requires DOM access, which service workers don't have.
-// This offscreen document handles all STT and forwards results via chrome.runtime messaging.
+// AI Voice — Offscreen Document for Speech Recognition
+// Handles microphone access and SpeechRecognition API
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -19,9 +18,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       stopRecognition();
       sendResponse({ ok: true });
       break;
+    case 'request-mic-permission':
+      requestMicPermission().then(result => sendResponse(result));
+      return true; // async
   }
   return true;
 });
+
+async function requestMicPermission() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Stop tracks immediately — we just needed the permission grant
+    stream.getTracks().forEach(t => t.stop());
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
 
 function startRecognition(lang) {
   if (isListening) stopRecognition();
@@ -71,7 +84,6 @@ function startRecognition(lang) {
   };
 
   recognition.onerror = (event) => {
-    // 'no-speech' and 'aborted' are normal, ignore them
     if (event.error === 'no-speech' || event.error === 'aborted') return;
 
     chrome.runtime.sendMessage({
@@ -86,7 +98,6 @@ function startRecognition(lang) {
   };
 
   recognition.onend = () => {
-    // Auto-restart if still supposed to be listening
     if (isListening) {
       try {
         recognition.start();
@@ -108,10 +119,25 @@ function startRecognition(lang) {
   try {
     recognition.start();
   } catch (e) {
-    chrome.runtime.sendMessage({
-      target: 'content',
-      type: 'stt-error',
-      error: e.message
+    // If permission denied, try requesting it first
+    requestMicPermission().then(result => {
+      if (result.ok) {
+        try {
+          recognition.start();
+        } catch (e2) {
+          chrome.runtime.sendMessage({
+            target: 'content',
+            type: 'stt-error',
+            error: e2.message
+          });
+        }
+      } else {
+        chrome.runtime.sendMessage({
+          target: 'content',
+          type: 'stt-error',
+          error: 'not-allowed'
+        });
+      }
     });
   }
 }
