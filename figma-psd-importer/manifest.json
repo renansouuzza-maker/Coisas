@@ -8,7 +8,7 @@
   "enableProposedApi": false,
   "editorType": ["figma"],
   "networkAccess": {
-    "allowedDomains": ["none"]
+    "allowedDomains": ["cdn.jsdelivr.net"]
   },
   "documentAccess": "dynamic-page"
 }

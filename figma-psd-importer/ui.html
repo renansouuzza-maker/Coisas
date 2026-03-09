@@ -169,7 +169,7 @@
   <h2>PSD Importer</h2>
 
   <div class="drop-zone" id="dropZone">
-    <div class="icon">📁</div>
+    <div class="icon">&#128193;</div>
     <strong>Arraste um arquivo .psd aqui</strong>
     <p>ou clique para selecionar</p>
   </div>
@@ -178,7 +178,7 @@
 
   <div class="options">
     <div class="option-row">
-      <label>Importar textos como editáveis</label>
+      <label>Importar textos como editaveis</label>
       <label class="toggle">
         <input type="checkbox" id="optText" checked />
         <span class="slider"></span>
@@ -208,7 +208,27 @@
 
   <div class="footer">Open Source — ag-psd + Figma Plugin API</div>
 
-  <script>
+  <script type="module">
+    import { readPsd, initializeCanvas } from 'https://cdn.jsdelivr.net/npm/ag-psd@22.2.1/dist/browser.mjs';
+
+    // Initialize ag-psd with browser Canvas support
+    initializeCanvas(
+      (width, height) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        return canvas;
+      },
+      (src) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('Failed to load image'));
+          img.src = src;
+        });
+      }
+    );
+
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const status = document.getElementById('status');
@@ -238,7 +258,114 @@
       if (file) processFile(file);
     });
 
-    function processFile(file) {
+    function setStatus(msg, type) {
+      status.textContent = msg;
+      status.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    function setProgress(percent) {
+      progressFill.style.width = percent + '%';
+    }
+
+    // Extract PNG bytes from a canvas
+    async function canvasToPng(canvas) {
+      if (!canvas) return null;
+      try {
+        const blob = await new Promise((resolve) => {
+          canvas.toBlob(resolve, 'image/png');
+        });
+        if (!blob) return null;
+        const buffer = await blob.arrayBuffer();
+        return new Uint8Array(buffer);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Recursively serialize PSD layers into a plain object with image bytes
+    async function serializeLayer(layer, onProgress) {
+      const result = {
+        name: layer.name || 'Layer',
+        left: layer.left,
+        top: layer.top,
+        right: layer.right,
+        bottom: layer.bottom,
+        opacity: layer.opacity,
+        hidden: layer.hidden || false,
+        blendMode: layer.blendMode,
+        imageBytes: null,
+        imageWidth: 0,
+        imageHeight: 0,
+        text: null,
+        hasVectorMask: !!(layer.vectorMask),
+        hasMask: !!(layer.mask),
+        children: null,
+      };
+
+      // Extract image from canvas
+      if (layer.canvas) {
+        const png = await canvasToPng(layer.canvas);
+        if (png) {
+          result.imageBytes = png;
+          result.imageWidth = layer.canvas.width;
+          result.imageHeight = layer.canvas.height;
+        }
+      }
+
+      // Extract text info
+      if (layer.text) {
+        result.text = {
+          value: layer.text.text || '',
+          fontName: null,
+          fontSize: null,
+          fillColor: null,
+          fauxBold: false,
+          fauxItalic: false,
+        };
+        if (layer.text.style) {
+          const s = layer.text.style;
+          if (s.font && s.font.name) {
+            result.text.fontName = s.font.name;
+          }
+          if (s.fontSize) {
+            result.text.fontSize = s.fontSize;
+          }
+          if (s.fillColor) {
+            result.text.fillColor = {
+              r: s.fillColor.r || 0,
+              g: s.fillColor.g || 0,
+              b: s.fillColor.b || 0,
+              a: s.fillColor.a !== undefined ? s.fillColor.a : 1,
+            };
+          }
+          result.text.fauxBold = !!s.fauxBold;
+          result.text.fauxItalic = !!s.fauxItalic;
+        }
+      }
+
+      // Process children recursively
+      if (layer.children && layer.children.length > 0) {
+        result.children = [];
+        for (const child of layer.children) {
+          const serialized = await serializeLayer(child, onProgress);
+          result.children.push(serialized);
+          if (onProgress) onProgress();
+        }
+      }
+
+      return result;
+    }
+
+    function countLayers(layers) {
+      let count = 0;
+      for (const l of layers) {
+        count++;
+        if (l.children) count += countLayers(l.children);
+      }
+      return count;
+    }
+
+    async function processFile(file) {
       if (!file.name.match(/\.(psd|psb)$/i)) {
         setStatus('Por favor, selecione um arquivo .psd ou .psb', 'error');
         return;
@@ -246,12 +373,57 @@
 
       setStatus('Lendo arquivo...', '');
       progressBar.classList.add('active');
-      progressFill.style.width = '20%';
+      setProgress(10);
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        progressFill.style.width = '50%';
-        setStatus('Enviando para processamento...', '');
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        setProgress(25);
+        setStatus('Parsing PSD (decodificando camadas)...', '');
+
+        // Parse PSD in the UI thread (has Canvas access)
+        const psd = readPsd(new Uint8Array(arrayBuffer), {
+          skipCompositeImageData: false,
+          skipLayerImageData: false,
+          skipThumbnail: true,
+        });
+
+        if (!psd) {
+          setStatus('Falha ao interpretar o arquivo PSD.', 'error');
+          progressBar.classList.remove('active');
+          return;
+        }
+
+        setProgress(40);
+        setStatus('Extraindo imagens das camadas...', '');
+
+        const allLayers = psd.children || [];
+        const totalLayers = countLayers(allLayers);
+        let processed = 0;
+
+        const onProgress = () => {
+          processed++;
+          const pct = 40 + Math.round((processed / Math.max(totalLayers, 1)) * 30);
+          setProgress(Math.min(pct, 70));
+          if (processed % 3 === 0) {
+            setStatus('Extraindo camada ' + processed + '/' + totalLayers + '...', '');
+          }
+        };
+
+        // Serialize all layers (extract PNG bytes from canvases)
+        const serializedLayers = [];
+        for (const layer of allLayers) {
+          const s = await serializeLayer(layer, onProgress);
+          serializedLayers.push(s);
+        }
+
+        // Get composite image
+        let compositeBytes = null;
+        if (psd.canvas) {
+          compositeBytes = await canvasToPng(psd.canvas);
+        }
+
+        setProgress(75);
+        setStatus('Enviando para o Figma...', '');
 
         const options = {
           importText: document.getElementById('optText').checked,
@@ -259,27 +431,23 @@
           importHidden: document.getElementById('optHidden').checked,
         };
 
+        // Send parsed data to plugin code
         parent.postMessage({
           pluginMessage: {
-            type: 'import-psd',
-            data: new Uint8Array(reader.result),
+            type: 'import-psd-parsed',
+            psdWidth: psd.width || 1920,
+            psdHeight: psd.height || 1080,
             fileName: file.name,
-            options: options
+            layers: serializedLayers,
+            compositeBytes: compositeBytes,
+            options: options,
           }
         }, '*');
-      };
 
-      reader.onerror = () => {
-        setStatus('Erro ao ler o arquivo', 'error');
+      } catch (err) {
+        setStatus('Erro ao processar: ' + (err.message || err), 'error');
         progressBar.classList.remove('active');
-      };
-
-      reader.readAsArrayBuffer(file);
-    }
-
-    function setStatus(msg, type) {
-      status.textContent = msg;
-      status.className = 'status' + (type ? ' ' + type : '');
+      }
     }
 
     window.onmessage = (event) => {
@@ -287,14 +455,14 @@
       if (!msg) return;
 
       if (msg.type === 'progress') {
-        progressFill.style.width = msg.percent + '%';
+        setProgress(msg.percent);
         setStatus(msg.message, '');
       } else if (msg.type === 'done') {
-        progressFill.style.width = '100%';
+        setProgress(100);
         setStatus(msg.message, 'success');
         setTimeout(() => {
           progressBar.classList.remove('active');
-        }, 1500);
+        }, 2000);
       } else if (msg.type === 'error') {
         setStatus(msg.message, 'error');
         progressBar.classList.remove('active');
