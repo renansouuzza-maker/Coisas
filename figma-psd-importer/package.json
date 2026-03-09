@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Figma plugin to import PSD files with layers",
   "scripts": {
-    "build": "esbuild code.ts --bundle --outfile=code.js --target=es2020 --format=iife --platform=browser",
-    "watch": "esbuild code.ts --bundle --outfile=code.js --target=es2020 --format=iife --platform=browser --watch"
+    "build": "esbuild code.ts --bundle --outfile=code.js --target=es2017 --format=iife --platform=browser",
+    "watch": "esbuild code.ts --bundle --outfile=code.js --target=es2017 --format=iife --platform=browser --watch"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.100.0",

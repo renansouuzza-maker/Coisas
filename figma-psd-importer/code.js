@@ -15337,7 +15337,7 @@
           }, "image/png");
         });
       }
-    } catch {
+    } catch (_e) {
     }
     try {
       const ctx = canvas.getContext("2d");
@@ -15345,11 +15345,12 @@
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         return new Uint8Array(imageData.data.buffer);
       }
-    } catch {
+    } catch (_e) {
     }
     return null;
   }
   async function createLayerNode(layer, parent, options, depth = 0) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
     if (layer.hidden && !options.importHidden) {
       return null;
     }
@@ -15416,7 +15417,7 @@
         let fontFamily = "Inter";
         let fontStyle = "Regular";
         if (layer.text.style) {
-          if (layer.text.style.font?.name) {
+          if ((_a = layer.text.style.font) == null ? void 0 : _a.name) {
             fontFamily = layer.text.style.font.name;
           }
           if (layer.text.style.fauxBold) {
@@ -15428,7 +15429,7 @@
         }
         try {
           await figma.loadFontAsync({ family: fontFamily, style: fontStyle });
-        } catch {
+        } catch (_e2) {
           await figma.loadFontAsync({ family: "Inter", style: "Regular" });
           fontFamily = "Inter";
           fontStyle = "Regular";
@@ -15436,16 +15437,16 @@
         const textValue = layer.text.text || name;
         textNode.characters = textValue;
         textNode.fontName = { family: fontFamily, style: fontStyle };
-        if (layer.text.style?.fontSize) {
+        if ((_b = layer.text.style) == null ? void 0 : _b.fontSize) {
           textNode.fontSize = layer.text.style.fontSize;
         }
-        if (layer.text.style?.fillColor) {
+        if ((_c = layer.text.style) == null ? void 0 : _c.fillColor) {
           const c = layer.text.style.fillColor;
           const { color, opacity } = rgbaToFigmaColor(
-            Math.round((c.r ?? 0) * 255),
-            Math.round((c.g ?? 0) * 255),
-            Math.round((c.b ?? 0) * 255),
-            Math.round((c.a ?? 1) * 255)
+            Math.round(((_d = c.r) != null ? _d : 0) * 255),
+            Math.round(((_e = c.g) != null ? _e : 0) * 255),
+            Math.round(((_f = c.b) != null ? _f : 0) * 255),
+            Math.round(((_g = c.a) != null ? _g : 1) * 255)
           );
           textNode.fills = [{ type: "SOLID", color, opacity }];
         }
@@ -15453,7 +15454,7 @@
         try {
           await figma.loadFontAsync({ family: "Inter", style: "Regular" });
           textNode.characters = layer.text.text || name;
-        } catch {
+        } catch (_e2) {
         }
       }
       if (options.preserveOpacity && layer.opacity !== void 0) {
@@ -15494,7 +15495,7 @@
               scaleMode: "FILL"
             }];
           }
-        } catch {
+        } catch (_e2) {
           rect.fills = [{ type: "SOLID", color: { r: 0.8, g: 0.8, b: 0.8 }, opacity: 0.5 }];
         }
       }
@@ -15515,8 +15516,8 @@
         rect.x = layer.left;
         rect.y = layer.top;
       }
-      const w = (layer.right ?? 0) - (layer.left ?? 0);
-      const h = (layer.bottom ?? 0) - (layer.top ?? 0);
+      const w = ((_h = layer.right) != null ? _h : 0) - ((_i = layer.left) != null ? _i : 0);
+      const h = ((_j = layer.bottom) != null ? _j : 0) - ((_k = layer.top) != null ? _k : 0);
       rect.resize(Math.max(1, w), Math.max(1, h));
       if (layer.effectsOpenResourceEffects || layer.vectorFill) {
         rect.fills = [{ type: "SOLID", color: { r: 0.5, g: 0.5, b: 0.5 } }];
@@ -15564,6 +15565,7 @@
     return count;
   }
   figma.ui.onmessage = async (msg) => {
+    var _a;
     if (msg.type !== "import-psd" || !msg.data)
       return;
     const options = msg.options || {
@@ -15585,7 +15587,7 @@
       sendProgress(65, "Criando estrutura no Figma...");
       const page = figma.currentPage;
       const mainFrame = figma.createFrame();
-      mainFrame.name = msg.fileName?.replace(/\.(psd|psb)$/i, "") || "PSD Import";
+      mainFrame.name = ((_a = msg.fileName) == null ? void 0 : _a.replace(/\.(psd|psb)$/i, "")) || "PSD Import";
       page.appendChild(mainFrame);
       const psdWidth = psd.width || 1920;
       const psdHeight = psd.height || 1080;
@@ -15611,7 +15613,7 @@
             bgRect.locked = true;
             bgRect.visible = false;
           }
-        } catch {
+        } catch (_e) {
         }
       }
       const layers = psd.children || [];
@@ -15638,7 +15640,7 @@
       );
       figma.currentPage.selection = [mainFrame];
     } catch (err) {
-      const message = err?.message || "Erro desconhecido";
+      const message = (err == null ? void 0 : err.message) || "Erro desconhecido";
       sendError(`Erro ao importar: ${message}`);
       console.error("PSD Import Error:", err);
     }

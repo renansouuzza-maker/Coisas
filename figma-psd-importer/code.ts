@@ -100,7 +100,7 @@ async function imageFromCanvas(layer: PsdLayer): Promise<Uint8Array | null> {
         }, 'image/png');
       });
     }
-  } catch {
+  } catch (_e) {
     // fallback: try getImageData
   }
 
@@ -111,7 +111,7 @@ async function imageFromCanvas(layer: PsdLayer): Promise<Uint8Array | null> {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       return new Uint8Array(imageData.data.buffer);
     }
-  } catch {
+  } catch (_e) {
     // ignore
   }
 
@@ -233,7 +233,7 @@ async function createLayerNode(
 
       try {
         await figma.loadFontAsync({ family: fontFamily, style: fontStyle });
-      } catch {
+      } catch (_e) {
         // Fallback to Inter
         await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
         fontFamily = 'Inter';
@@ -265,7 +265,7 @@ async function createLayerNode(
       try {
         await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
         textNode.characters = layer.text.text || name;
-      } catch {
+      } catch (_e) {
         // ignore
       }
     }
@@ -319,7 +319,7 @@ async function createLayerNode(
             scaleMode: 'FILL',
           }];
         }
-      } catch {
+      } catch (_e) {
         // If image creation fails, use a placeholder color
         rect.fills = [{ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 }, opacity: 0.5 }];
       }
@@ -471,7 +471,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           bgRect.locked = true;
           bgRect.visible = false; // Hidden by default, layers take priority
         }
-      } catch {
+      } catch (_e) {
         // Composite image is optional
       }
     }
