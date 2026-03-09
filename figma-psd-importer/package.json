@@ -1,0 +1,17 @@
+{
+  "name": "figma-psd-importer",
+  "version": "1.0.0",
+  "description": "Figma plugin to import PSD files with layers",
+  "scripts": {
+    "build": "esbuild code.ts --bundle --outfile=code.js --target=es2020 --format=iife --platform=browser",
+    "watch": "esbuild code.ts --bundle --outfile=code.js --target=es2020 --format=iife --platform=browser --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.100.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "ag-psd": "^22.0.0"
+  }
+}

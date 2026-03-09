@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #1e1e1e;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .drop-zone {
+      width: 100%;
+      max-width: 360px;
+      border: 2px dashed #555;
+      border-radius: 12px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #2a2a2a;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: #a259ff;
+      background: #332244;
+    }
+
+    .drop-zone p {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 8px;
+    }
+
+    .drop-zone .icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #aaa;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    .status.error {
+      color: #ff6b6b;
+    }
+
+    .status.success {
+      color: #51cf66;
+    }
+
+    .progress-bar {
+      width: 100%;
+      max-width: 360px;
+      height: 4px;
+      background: #333;
+      border-radius: 2px;
+      margin-top: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar.active {
+      display: block;
+    }
+
+    .progress-bar .fill {
+      height: 100%;
+      background: #a259ff;
+      border-radius: 2px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .options {
+      margin-top: 16px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+
+    .option-row label {
+      color: #ccc;
+    }
+
+    .toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #555;
+      border-radius: 20px;
+      transition: 0.2s;
+    }
+
+    .toggle .slider:before {
+      content: "";
+      position: absolute;
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+
+    .toggle input:checked + .slider {
+      background-color: #a259ff;
+    }
+
+    .toggle input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    .footer {
+      margin-top: 24px;
+      font-size: 11px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h2>PSD Importer</h2>
+
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">📁</div>
+    <strong>Arraste um arquivo .psd aqui</strong>
+    <p>ou clique para selecionar</p>
+  </div>
+
+  <input type="file" id="fileInput" accept=".psd,.psb" />
+
+  <div class="options">
+    <div class="option-row">
+      <label>Importar textos como editáveis</label>
+      <label class="toggle">
+        <input type="checkbox" id="optText" checked />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="option-row">
+      <label>Preservar opacidade das camadas</label>
+      <label class="toggle">
+        <input type="checkbox" id="optOpacity" checked />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="option-row">
+      <label>Importar camadas ocultas</label>
+      <label class="toggle">
+        <input type="checkbox" id="optHidden" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="progress-bar" id="progressBar">
+    <div class="fill" id="progressFill"></div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="footer">Open Source — ag-psd + Figma Plugin API</div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const status = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) processFile(file);
+    });
+
+    function processFile(file) {
+      if (!file.name.match(/\.(psd|psb)$/i)) {
+        setStatus('Por favor, selecione um arquivo .psd ou .psb', 'error');
+        return;
+      }
+
+      setStatus('Lendo arquivo...', '');
+      progressBar.classList.add('active');
+      progressFill.style.width = '20%';
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        progressFill.style.width = '50%';
+        setStatus('Enviando para processamento...', '');
+
+        const options = {
+          importText: document.getElementById('optText').checked,
+          preserveOpacity: document.getElementById('optOpacity').checked,
+          importHidden: document.getElementById('optHidden').checked,
+        };
+
+        parent.postMessage({
+          pluginMessage: {
+            type: 'import-psd',
+            data: new Uint8Array(reader.result),
+            fileName: file.name,
+            options: options
+          }
+        }, '*');
+      };
+
+      reader.onerror = () => {
+        setStatus('Erro ao ler o arquivo', 'error');
+        progressBar.classList.remove('active');
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+
+    function setStatus(msg, type) {
+      status.textContent = msg;
+      status.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'progress') {
+        progressFill.style.width = msg.percent + '%';
+        setStatus(msg.message, '');
+      } else if (msg.type === 'done') {
+        progressFill.style.width = '100%';
+        setStatus(msg.message, 'success');
+        setTimeout(() => {
+          progressBar.classList.remove('active');
+        }, 1500);
+      } else if (msg.type === 'error') {
+        setStatus(msg.message, 'error');
+        progressBar.classList.remove('active');
+      }
+    };
+  </script>
+</body>
+</html>
