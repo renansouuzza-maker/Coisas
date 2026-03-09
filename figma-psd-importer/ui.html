@@ -28,6 +28,10 @@
     }
 
     .drop-zone {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       width: 100%;
       max-width: 360px;
       border: 2px dashed #555;
@@ -57,7 +61,11 @@
     }
 
     input[type="file"] {
-      display: none;
+      position: absolute;
+      width: 0;
+      height: 0;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .status {
@@ -168,13 +176,12 @@
 <body>
   <h2>PSD Importer</h2>
 
-  <div class="drop-zone" id="dropZone">
+  <label class="drop-zone" id="dropZone" for="fileInput">
     <div class="icon">&#128193;</div>
     <strong>Arraste um arquivo .psd aqui</strong>
     <p>ou clique para selecionar</p>
-  </div>
-
-  <input type="file" id="fileInput" accept=".psd,.psb" />
+    <input type="file" id="fileInput" accept=".psd,.psb" />
+  </label>
 
   <div class="options">
     <div class="option-row">
@@ -234,8 +241,6 @@
     const status = document.getElementById('status');
     const progressBar = document.getElementById('progressBar');
     const progressFill = document.getElementById('progressFill');
-
-    dropZone.addEventListener('click', () => fileInput.click());
 
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
