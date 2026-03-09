@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Voice — Configurações</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup">
+    <h1>
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="#e67e22">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+      Claude Voice
+    </h1>
+    <p class="subtitle">Interface de voz para Claude.ai</p>
+
+    <div class="section">
+      <h2>Reconhecimento de Voz</h2>
+
+      <label for="language">Idioma</label>
+      <select id="language">
+        <option value="pt-BR">Portugues (Brasil)</option>
+        <option value="pt-PT">Portugues (Portugal)</option>
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-ES">Espanol</option>
+        <option value="fr-FR">Francais</option>
+        <option value="de-DE">Deutsch</option>
+        <option value="it-IT">Italiano</option>
+        <option value="ja-JP">Japanese</option>
+        <option value="ko-KR">Korean</option>
+        <option value="zh-CN">Chinese (Simplified)</option>
+      </select>
+
+      <label for="silenceTimeout">Tempo de silencio antes de enviar</label>
+      <div class="range-row">
+        <input type="range" id="silenceTimeout" min="1000" max="5000" step="500" value="2000">
+        <span id="silenceValue">2s</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Leitura de Respostas</h2>
+
+      <label for="voiceName">Voz</label>
+      <select id="voiceName">
+        <option value="">Padrao do sistema</option>
+      </select>
+
+      <label for="speechRate">Velocidade</label>
+      <div class="range-row">
+        <input type="range" id="speechRate" min="0.5" max="2.0" step="0.1" value="1.0">
+        <span id="rateValue">1.0x</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Comportamento</h2>
+
+      <div class="toggle-row">
+        <label for="autoSubmit">Enviar automaticamente</label>
+        <input type="checkbox" id="autoSubmit" checked>
+      </div>
+
+      <div class="toggle-row">
+        <label for="autoRead">Ler respostas automaticamente</label>
+        <input type="checkbox" id="autoRead" checked>
+      </div>
+
+      <div class="toggle-row">
+        <label for="readCodeBlocks">Ler blocos de codigo</label>
+        <input type="checkbox" id="readCodeBlocks">
+      </div>
+    </div>
+
+    <div class="section shortcuts">
+      <h2>Atalhos</h2>
+      <div class="shortcut"><kbd>Alt</kbd> + <kbd>Space</kbd> Ativar/desativar mic</div>
+      <div class="shortcut"><kbd>Esc</kbd> Parar leitura</div>
+    </div>
+
+    <div class="footer">
+      <span id="status">Salvo</span>
+      <a href="https://github.com" target="_blank">Open Source (MIT)</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
